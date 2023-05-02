@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import zmq.asyncio
 import os
 import asyncio
@@ -5,7 +6,7 @@ import logging
 from random import randint
 
 
-class Peer:
+class Peer(ABC):
     def __init__(self, address, group_broadcast_delay=1.0, setup=False):
         # Peer setup
         self.address = address
@@ -28,8 +29,8 @@ class Peer:
         # Logging setup
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.propagate = False
-        os.makedirs("logs", exist_ok=True)
-        file_handler = logging.FileHandler(f"logs/{self.address[6:]}.log")
+        os.makedirs("zmqer_logs", exist_ok=True)
+        file_handler = logging.FileHandler(f"zmqer_logs/{self.address[6:]}.log")
         file_handler.setLevel(logging.DEBUG)
         self.logger.addHandler(file_handler)
 
@@ -68,6 +69,7 @@ class Peer:
                 message = await self.sub_socket.recv_string()
                 self.logger.debug(f"{self.address}:\n\tReceived message: {message}")
 
+                # Todo: register peer communication types
                 if message.startswith("JOINED="):
                     self.join_statuses.append(message[7:])
                     if len(self.join_statuses) > 100:
@@ -81,15 +83,10 @@ class Peer:
                         await self.broadcast(f"JOINED={joined}")
             except Exception as e:
                 self.logger.error(f"Error: {e}")
-            
+
+    @abstractmethod    
     async def broadcast_loop(self):
-        while not self.done:
-            try:
-                # TODO: this sleep is to simulate some work being done
-                await asyncio.sleep(1)
-                await self.broadcast(f"{self.address} gave {randint(0, 100)}")
-            except Exception as e:
-                self.logger.error(f"Error: {e}")
+        pass
 
     async def group_broadcast_loop(self):
         while not self.done:
@@ -144,3 +141,13 @@ class Peer:
     
     def __eq__(self, other):
         return self.address == other.address
+    
+
+class RandomPeer(Peer):
+    async def broadcast_loop(self):
+        while not self.done:
+            try:
+                await asyncio.sleep(randint(1, 3))
+                await self.broadcast(f"RANDOM={randint(1, 100)}")
+            except Exception as e:
+                self.logger.error(f"Error: {e}")

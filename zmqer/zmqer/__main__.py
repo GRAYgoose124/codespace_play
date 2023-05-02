@@ -3,7 +3,7 @@ from random import randint
 
 import logging
 
-from zmqer.peer import Peer
+from zmqer.peer import RandomPeer as Peer
 from zmqer.misc import connect_linked
 
 
