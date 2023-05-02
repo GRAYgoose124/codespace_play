@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 
 class LoadingIndicator(ABC):
     """Abstract base class for loading indicators."""
+
     def __init__(self, interval=0.05):
         """
         Creates a loading indicator object.
@@ -27,16 +28,19 @@ class LoadingIndicator(ABC):
 
 def progress(indicator):
     """Decorator to wrap a coroutine function with the LoadingIndicator run function."""
+
     def wrapped_callback(callback):
-        async def wrapped():
-            result = await callback()
+        async def wrapped(*args, **kwargs):
+            result = await callback(*args, **kwargs)
             indicator.done()
             return result
 
-        async def new_callback():
+        async def new_callback(*args, **kwargs):
             run_task = asyncio.create_task(indicator.run())
-            wrapped_task = asyncio.create_task(wrapped())
-            done, pending = await asyncio.wait({run_task, wrapped_task}, return_when=asyncio.FIRST_COMPLETED)
+            wrapped_task = asyncio.create_task(wrapped(*args, **kwargs))
+            done, pending = await asyncio.wait(
+                {run_task, wrapped_task}, return_when=asyncio.FIRST_COMPLETED
+            )
             for task in pending:
                 await task
             return next(iter(done)).result()
@@ -44,6 +48,3 @@ def progress(indicator):
         return new_callback
 
     return wrapped_callback
-
-
-

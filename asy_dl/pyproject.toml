@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "asy-dl"
+version = "0.1.0"
+description = ""
+authors = ["Grayson <grayson.miller124@gmail.com>"]
+readme = "README.md"
+packages = [
+    { include = "asy_dl", from = "." },
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+indicator = {path = "../indicator", develop = true}
+bs4 = "^0.0.1"
+aiohttp = "^3.8.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+asy_dl = "asy_dl.__main__:main"

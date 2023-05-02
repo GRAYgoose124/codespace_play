@@ -1,8 +1,8 @@
 import asyncio
 import signal
 
-from abc_indicator import BrailleLoadingIndicator, PercentageLoadingIndicator, SpinnerLoadingIndicator
-from abc_indicator import progress
+from indicator import BrailleLoadingIndicator, PercentageLoadingIndicator, SpinnerLoadingIndicator
+from indicator import progress
 
 
 async def main():
@@ -14,9 +14,9 @@ async def main():
         def custom_step_callback(braille_char):
             print(f"\rStep: {braille_char}", end="")
 
-        # indicator = BrailleLoadingIndicator(done_callback=custom_done_callback)#, step_callback=custom_step_callback)
+        indicator = BrailleLoadingIndicator(done_callback=custom_done_callback)#, step_callback=custom_step_callback)
         # indicator = PercentageLoadingIndicator(20, done_callback=custom_done_callback)#, step_callback=custom_step_callback)
-        indicator = SpinnerLoadingIndicator(done_callback=custom_done_callback)#, step_callback=custom_step_callback)
+        # indicator = SpinnerLoadingIndicator(done_callback=custom_done_callback)#, step_callback=custom_step_callback)
         
         # Add a signal handler to the event loop to catch keyboard interrupts
         loop = asyncio.get_running_loop()
