@@ -27,6 +27,7 @@ class Peer:
         self.join_statuses = 100 * [True]
 
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.propagate = False
         os.makedirs("logs", exist_ok=True)
         file_handler = logging.FileHandler(f"logs/{self.address[6:]}.log")
         file_handler.setLevel(logging.DEBUG)
@@ -36,23 +37,24 @@ class Peer:
         joined = self.join_group(message)
         # TODO: broadcast JOINED_GROUP=joined to determine population health (False == good)
         self.logger.debug(
-            f"{self.address}:\n\tReceived NEW_PEER message: {message}\n\t\t{self.group}\n\t\tJOINED:{joined}"
+            f"{self.address}:\n\tReceived NEW_PEER message: {message}\n\t\t{self.group}\n\t\t{joined=} {type(joined)}"
         )
         return joined
 
-    def handle_JOINED_GROUP(self, message):
-        # Calculate population health by rolling average the joined statuses.
-        self.join_statuses.append(message)
-
-        if len(self.join_statuses) > 100:
-            self.join_statuses.pop(0)
-
+    def calculate_health(self):
         health = self.join_statuses.count("False") / len(self.join_statuses)
         self.logger.debug(
-            f"{self.address}:\n\tReceived JOINED_GROUP message: {message}\n\t\t{self.group}\n\t\tPopulation health: {health}"
+            f"{self.address}:\n\tPopulation health: {health} {self.GROUP_BROADCAST_DELAY=}"
         )
         self.health = health
         return health
+
+    def handle_JOINED_GROUP(self, message):
+        self.join_statuses.append(message)
+        if len(self.join_statuses) > 100:
+            self.join_statuses.pop(0)
+
+        self.calculate_health()
 
     async def recv(self):
         message = await self.sub_socket.recv_string()
@@ -60,10 +62,10 @@ class Peer:
         return message
 
     async def recv_loop(self):
-        self.sub_socket.connect(self.address)
         while True:
             try:
                 message = await self.recv()
+
                 if message.startswith("NEW_PEER"):
                     joined = self.handle_NEW_PEER(message[9:])
                     await self.broadcast(f"JOINED_GROUP={joined}")
@@ -92,12 +94,14 @@ class Peer:
 
         self.logger.debug(f"{self.address}:\n\tBroadcasted group: {peers}")
 
-    def update_broadcast_rate(self):
+    def update_broadcast_delay(self):
         """Dynamically updates broadcast rate based on health of the population"""
         if self.health < 0.5:
-            self.GROUP_BROADCAST_DELAY = self.GROUP_BROADCAST_DELAY / 2
+            self.GROUP_BROADCAST_DELAY = max(
+                self.GROUP_BROADCAST_DELAY / (2 + self.health), 0.25
+            )
         elif self.health > 0.9:
-            self.GROUP_BROADCAST_DELAY = self.GROUP_BROADCAST_DELAY * 2
+            self.GROUP_BROADCAST_DELAY = self.GROUP_BROADCAST_DELAY * (2 + self.health)
         else:
             self.GROUP_BROADCAST_DELAY = self.BASE_GROUP_BROADCAST_DELAY
 
@@ -106,7 +110,9 @@ class Peer:
             try:
                 await asyncio.sleep(self.GROUP_BROADCAST_DELAY)
                 await self.broadcast_group()
-                self.update_broadcast_rate()
+                self.update_broadcast_delay()
+                if time.time() % 10 < 1.0:
+                    self.logger.info(f"{self.GROUP_BROADCAST_DELAY=}")
             except Exception as e:
                 self.logger.error(f"Error: {e}")
 
@@ -124,6 +130,8 @@ class Peer:
         return list(self.group.keys())
 
     def start(self):
+        self.sub_socket.connect(self.address)
+
         self.loop.create_task(self.recv_loop())
         self.loop.create_task(self.group_broadcast_loop())
         self.loop.create_task(self.broadcast_loop())
@@ -144,10 +152,11 @@ def connect_linked(peers):
 
 def main():
     logging.basicConfig(level=logging.DEBUG)
+    logging.root.handlers[0].stream = None
     loop = asyncio.get_event_loop()
 
     starting_port = 5555 + randint(0, 1000)
-    n_peers = 10
+    n_peers = 3
 
     peers = [
         Peer(address)
