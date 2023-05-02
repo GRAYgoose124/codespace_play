@@ -10,13 +10,14 @@ class Peer(ABC):
         # Peer setup
         self.address = address
         self.done = False
+        self._tasks = []
+
         # ZMQ / asyncio setup
         self.loop = asyncio.get_event_loop()
         self.ctx = zmq.asyncio.Context()
         self.pub_socket = self.ctx.socket(zmq.PUB)
         self.sub_socket = self.ctx.socket(zmq.SUB)
         self.sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")
-
         self.message_types = {}
 
         # Logging setup
@@ -32,7 +33,7 @@ class Peer(ABC):
     def __post_init__(self):
         pass
 
-    @abstractmethod    
+    @abstractmethod
     async def broadcast_loop(self):
         pass
 
@@ -41,9 +42,13 @@ class Peer(ABC):
         self.logger.debug(f"{self.address}:\n\tSent message: {message}")
 
     @property
+    def tasks(self):
+        return self._tasks
+
+    @property
     def peers(self) -> list["Peer"]:
         return [self.address] + list(self.group.keys())
-    
+
     def register_message_type(self, message_type, handler):
         if message_type not in self.message_types:
             self.message_types[message_type] = handler
@@ -51,7 +56,7 @@ class Peer(ABC):
     async def message_type_handler(self, message):
         for message_type, handler in self.message_types.items():
             if message.startswith(f"{message_type}="):
-                return await handler(self, message[len(message_type) + 1:])
+                return await handler(self, message[len(message_type) + 1 :])
 
     async def recv_loop(self):
         while not self.done:
@@ -59,7 +64,7 @@ class Peer(ABC):
                 message = await self.sub_socket.recv_string()
                 self.logger.debug(f"{self.address}:\n\tReceived message: {message}")
 
-                await self.message_type_handler(message)                   
+                await self.message_type_handler(message)
             except Exception as e:
                 self.logger.error(f"Error: {e}")
 
@@ -70,28 +75,28 @@ class Peer(ABC):
 
         self._tasks = [
             self.loop.create_task(self.recv_loop()),
-            self.loop.create_task(self.broadcast_loop())
+            self.loop.create_task(self.broadcast_loop()),
         ]
 
         return self._tasks
-    
+
     def teardown(self):
         self.done = True
         for task in self._tasks:
             task.cancel()
+        self._tasks = []
 
         self.sub_socket.close()
         self.pub_socket.close()
 
     def __repr__(self):
         return f"<Peer {self.address}>"
-    
+
     def __str__(self):
         return self.address
-    
+
     def __hash__(self):
         return hash(self.address)
-    
+
     def __eq__(self, other):
         return self.address == other.address
-    

@@ -4,7 +4,10 @@ import signal
 
 class LoadingIndicator:
     """Displays a loading indicator in the CLI using Unicode Braille characters."""
-    def __init__(self, interval=0.05, br_dots=None, done_callback=None, step_callback=None):
+
+    def __init__(
+        self, interval=0.05, br_dots=None, done_callback=None, step_callback=None
+    ):
         """
         Creates a loading indicator object.
 
@@ -48,6 +51,7 @@ class LoadingIndicator:
 
 def progress(indicator):
     """Decorator to wrap a coroutine function with the LoadingIndicator run function."""
+
     def wrapped_callback(callback):
         async def wrapped():
             result = await callback()
@@ -57,7 +61,9 @@ def progress(indicator):
         async def new_callback():
             run_task = asyncio.create_task(indicator.run())
             wrapped_task = asyncio.create_task(wrapped())
-            done, pending = await asyncio.wait({run_task, wrapped_task}, return_when=asyncio.FIRST_COMPLETED)
+            done, pending = await asyncio.wait(
+                {run_task, wrapped_task}, return_when=asyncio.FIRST_COMPLETED
+            )
             for task in pending:
                 await task
             return next(iter(done)).result()
@@ -65,7 +71,6 @@ def progress(indicator):
         return new_callback
 
     return wrapped_callback
-
 
 
 async def main():
@@ -77,7 +82,9 @@ async def main():
         def custom_step_callback(braille_char):
             print(f"\rStep: {braille_char}", end="")
 
-        indicator = LoadingIndicator(done_callback=custom_done_callback)# , step_callback=custom_step_callback)
+        indicator = LoadingIndicator(
+            done_callback=custom_done_callback
+        )  # , step_callback=custom_step_callback)
 
         # Add a signal handler to the event loop to catch keyboard interrupts
         loop = asyncio.get_running_loop()

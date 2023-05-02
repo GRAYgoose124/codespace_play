@@ -4,6 +4,7 @@ from .indicator import LoadingIndicator
 
 class PercentageLoadingIndicator(LoadingIndicator):
     """Displays a loading indicator in the CLI as a percentage."""
+
     def __init__(self, max_value, done_callback=None, step_callback=None, **kwargs):
         """
         Creates a PercentageLoadingIndicator object.
@@ -39,6 +40,3 @@ class PercentageLoadingIndicator(LoadingIndicator):
     def default_done_callback(percentage):
         """Default done callback function that prints the percentage as a string."""
         print(f"\nDone at {percentage}%.")
-
-
-

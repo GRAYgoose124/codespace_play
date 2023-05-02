@@ -4,6 +4,7 @@ import signal
 
 class LoadingIndicator:
     """Displays a loading indicator in the CLI using Unicode Braille characters."""
+
     def __init__(self, br_dots=None):
         """
         Creates a loading indicator object.
@@ -35,6 +36,7 @@ class LoadingIndicator:
 
 def progress(indicator):
     """Decorator to wrap a coroutine function with the LoadingIndicator run function."""
+
     def wrapped_callback(callback):
         async def wrapped():
             await callback()
@@ -42,8 +44,9 @@ def progress(indicator):
 
         async def new_callback():
             await asyncio.gather(indicator.run(), wrapped())
-            
+
         return new_callback
+
     return wrapped_callback
 
 

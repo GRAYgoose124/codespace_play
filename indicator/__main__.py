@@ -1,7 +1,11 @@
 import asyncio
 import signal
 
-from indicator import BrailleLoadingIndicator, PercentageLoadingIndicator, SpinnerLoadingIndicator
+from indicator import (
+    BrailleLoadingIndicator,
+    PercentageLoadingIndicator,
+    SpinnerLoadingIndicator,
+)
 from indicator import progress
 
 
@@ -14,10 +18,12 @@ async def main():
         def custom_step_callback(braille_char):
             print(f"\rStep: {braille_char}", end="")
 
-        indicator = BrailleLoadingIndicator(done_callback=custom_done_callback)#, step_callback=custom_step_callback)
+        indicator = BrailleLoadingIndicator(
+            done_callback=custom_done_callback
+        )  # , step_callback=custom_step_callback)
         # indicator = PercentageLoadingIndicator(20, done_callback=custom_done_callback)#, step_callback=custom_step_callback)
         # indicator = SpinnerLoadingIndicator(done_callback=custom_done_callback)#, step_callback=custom_step_callback)
-        
+
         # Add a signal handler to the event loop to catch keyboard interrupts
         loop = asyncio.get_running_loop()
         loop.add_signal_handler(signal.SIGINT, indicator.done)
@@ -33,7 +39,7 @@ async def main():
         # Run the decorated task
         result = await my_task()
         print(f"\nTask result: {result}")
-        
+
     finally:
         # Remove the signal handler when the program is done
         loop.remove_signal_handler(signal.SIGINT)

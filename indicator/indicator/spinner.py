@@ -4,7 +4,10 @@ from .indicator import LoadingIndicator
 
 class SpinnerLoadingIndicator(LoadingIndicator):
     """Displays a loading indicator in the CLI as a spinner animation."""
-    def __init__(self, spinner_chars=None, done_callback=None, step_callback=None, **kwargs):
+
+    def __init__(
+        self, spinner_chars=None, done_callback=None, step_callback=None, **kwargs
+    ):
         """
         Creates a SpinnerLoadingIndicator object.
 
@@ -25,7 +28,9 @@ class SpinnerLoadingIndicator(LoadingIndicator):
     async def run(self):
         """Runs the loading indicator."""
         while not self.is_done:
-            self.step_callback(self.spinner_chars[self.counter % len(self.spinner_chars)])
+            self.step_callback(
+                self.spinner_chars[self.counter % len(self.spinner_chars)]
+            )
             self.counter += 1
             await asyncio.sleep(self.interval)
         self.done_callback(self.counter)

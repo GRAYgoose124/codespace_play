@@ -5,6 +5,7 @@ from .indicator import LoadingIndicator
 
 class BrailleLoadingIndicator(LoadingIndicator):
     """Displays a loading indicator in the CLI using Unicode Braille characters."""
+
     def __init__(self, br_dots=None, done_callback=None, step_callback=None, **kwargs):
         """
         Creates a BrailleLoadingIndicator object.

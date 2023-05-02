@@ -2,6 +2,10 @@ from random import randint
 import asyncio
 
 from .base import Peer
+from ..misc import call_super
+
+
+STATUS_LENGTH = 100
 
 
 class GroupPeer(Peer):
@@ -9,27 +13,27 @@ class GroupPeer(Peer):
         # Group setup
         self.group = {}
         self.health = 0.0
-        self.join_statuses = 100 * [True]
+        self.join_statuses = STATUS_LENGTH * [True]
         self.BASE_GROUP_BROADCAST_DELAY = group_broadcast_delay
         self.GROUP_BROADCAST_DELAY = self.BASE_GROUP_BROADCAST_DELAY
 
         super().__init__(address, group_broadcast_delay)
 
     @staticmethod
-    async def JOINED_handler(peer: 'GroupPeer', message):
+    async def JOINED_handler(peer: "GroupPeer", message):
         peer.join_statuses.append(message)
-        if len(peer.join_statuses) > 100:
+        if len(peer.join_statuses) > STATUS_LENGTH:
             peer.join_statuses.pop(0)
 
-        health = peer.join_statuses.count("False") / 100
+        health = peer.join_statuses.count("False") / STATUS_LENGTH
         peer.logger.debug(
             f"{peer.address}:\n\tPopulation health: {health} {peer.GROUP_BROADCAST_DELAY=}"
         )
         peer.health = health
-        return health 
+        return health
 
     @staticmethod
-    async def GROUP_handler(peer: 'GroupPeer', message):
+    async def GROUP_handler(peer: "GroupPeer", message):
         group = message.translate({ord(c): None for c in "[]' "}).split(",")
         for p in group:
             joined = peer.join_group(p)
@@ -71,24 +75,20 @@ class GroupPeer(Peer):
         return False
 
     def setup(self):
-        tasks = super().setup()
-        tasks.append(self.loop.create_task(self.group_broadcast_loop()))
-        return tasks
+        super().setup()
+        self._tasks.append(self.loop.create_task(self.group_broadcast_loop()))
 
+        return self.tasks
 
-def call_super(cls):
-    """ decorator to call method super of class"""
-    def decorator(func):
-        def wrapper(self, *args, **kwargs):
-            getattr(super(cls, self), func.__name__)(*args, **kwargs)
-            func(self, *args, **kwargs)
-        return wrapper
-    return decorator
 
 class RandomGroupPeer(GroupPeer):
+    # singleton class var for counter
+    _counter = 0
+
     @staticmethod
-    async def RANDOM_handler(peer: 'RandomGroupPeer', message):
-        print(f"GOT THAT RANDOM GOODNESS: {message}")
+    async def RANDOM_handler(peer: "RandomGroupPeer", message):
+        RandomGroupPeer._counter += int(message)
+        print(f"GOT THAT RANDOM GOODNESS: {RandomGroupPeer._counter}")
 
     def __post_init__(self):
         super().__post_init__()

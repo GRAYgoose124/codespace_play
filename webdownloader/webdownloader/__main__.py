@@ -36,7 +36,10 @@ class WebDownloader:
         await self.downloads.put((url, download_dir))
 
     async def _start_downloads(self):
-        while len(self.active_downloads) < self.max_concurrent_downloads and not self.downloads.empty():
+        while (
+            len(self.active_downloads) < self.max_concurrent_downloads
+            and not self.downloads.empty()
+        ):
             dl = await self.downloads.get()
             download_task = asyncio.ensure_future(self.download(dl))
             self.active_downloads.append(download_task)
@@ -47,7 +50,9 @@ class WebDownloader:
         self.active_downloads.remove(task)
 
     def is_idle(self):
-        print(f"Active downloads: {len(self.active_downloads)}, Queued downloads: {self.downloads.qsize()}")
+        print(
+            f"Active downloads: {len(self.active_downloads)}, Queued downloads: {self.downloads.qsize()}"
+        )
         return len(self.active_downloads) == 0 and self.downloads.empty()
 
 
@@ -72,13 +77,16 @@ async def asy_main(args):
         loop.remove_signal_handler(signal.SIGINT)
 
 
-
 def main():
     parser = argparse.ArgumentParser(description="Asynchronous web downloader")
     parser.add_argument("urls", nargs="*", default=[], help="List of URLs to download")
-    parser.add_argument("-f", "--file", default=None, help="File containing list of URLs to download")
+    parser.add_argument(
+        "-f", "--file", default=None, help="File containing list of URLs to download"
+    )
     parser.add_argument("-o", "--output", default=None, help="Output directory")
-    parser.add_argument("-c", "--concurrency", type=int, default=3, help="Maximum concurrent downloads")
+    parser.add_argument(
+        "-c", "--concurrency", type=int, default=3, help="Maximum concurrent downloads"
+    )
 
     args = parser.parse_args()
 
@@ -92,4 +100,3 @@ def main():
         args.urls.extend(urls_from_file)
 
     asyncio.run(asy_main(args))
-
