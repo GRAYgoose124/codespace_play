@@ -22,23 +22,39 @@ class Peer:
         self.sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")
         self.group = {}
 
+        self.join_statuses = []
+
         self.logger = logging.getLogger(self.__class__.__name__)
         os.makedirs("logs", exist_ok=True)
         file_handler = logging.FileHandler(f"logs/{self.address[6:]}debug.log")
         file_handler.setLevel(logging.DEBUG)
         self.logger.addHandler(file_handler)
 
+    def handle_NEW_PEER(self, message):
+        joined = self.join_group(message)
+        # TODO: broadcast JOINED_GROUP=joined to determine population health (False == good)
+        self.logger.debug(
+            f"{self.address}:\n\tReceived NEW_PEER message: {message}\n\t\t{self.group}\n\t\tJOINED:{joined}"
+        )
+        return joined
+
+    def handle_JOINED_GROUP(self, message):
+        # Calculate population health by rolling average the joined statuses.
+        self.join_statuses.append(message)
+
+        if len(self.join_statuses) > 100:
+            self.join_statuses.pop(0)
+
+        health = self.join_statuses.count("False") / len(self.join_statuses)
+        self.logger.debug(
+            f"{self.address}:\n\tReceived JOINED_GROUP message: {message}\n\t\t{self.group}\n\t\tPopulation health: {health}"
+        )
+        return health
+
     async def recv(self):
         message = await self.sub_socket.recv_string()
         self.logger.debug(f"{self.address}:\n\tReceived message: {message}")
         return message
-
-    def handle_NEW_PEER(self, message):
-        self.join_group(message)
-        # TODO: broadcast JOINED_GROUP=group_address so that the population health can be determined.
-        self.logger.debug(
-            f"{self.address}:\n\tReceived NEW_PEER message: {message}\n{self.group}"
-        )
 
     async def recv_loop(self):
         self.sub_socket.connect(self.address)
@@ -46,7 +62,10 @@ class Peer:
             try:
                 message = await self.recv()
                 if message.startswith("NEW_PEER"):
-                    self.handle_NEW_PEER(message[9:])
+                    joined = self.handle_NEW_PEER(message[9:])
+                    await self.broadcast(f"JOINED_GROUP={joined}")
+                elif message.startswith("JOINED_GROUP"):
+                    self.handle_JOINED_GROUP(message[13:])
             except Exception as e:
                 self.logger.error(f"Error: {e}")
 
@@ -59,8 +78,22 @@ class Peer:
             try:
                 await asyncio.sleep(1)
                 await self.broadcast(f"{self.address} gave {randint(0, 100)}")
-                if time.time() % self.GROUP_BROADCAST_RATE < 1.0:
-                    await self.broadcast_group()
+            except Exception as e:
+                self.logger.error(f"Error: {e}")
+
+    async def broadcast_group(self):
+        """send the peers connected in the group"""
+        peers = self.get_group_peers()
+        for peer in peers:
+            await self.broadcast(f"NEW_PEER={peer}")
+
+        self.logger.debug(f"{self.address}:\n\tBroadcasted group: {peers}")
+
+    async def group_broadcast_loop(self):
+        while True:
+            try:
+                await asyncio.sleep(self.GROUP_BROADCAST_RATE)
+                await self.broadcast_group()
             except Exception as e:
                 self.logger.error(f"Error: {e}")
 
@@ -71,17 +104,16 @@ class Peer:
             self.logger.debug(
                 f"{self.address}:\n\tJoined group: {group_address}\n\t\t{self.group}"
             )
+            return True
+        return False
 
     def get_group_peers(self) -> list["Peer"]:
         return list(self.group.keys())
 
-    async def broadcast_group(self):
-        """send the peers connected in the group"""
-        peers = self.get_group_peers()
-        for peer in peers:
-            await self.broadcast(f"NEW_PEER={peer}")
-
-        self.logger.debug(f"{self.address}:\n\tBroadcasted group: {peers}")
+    def start(self):
+        self.loop.create_task(self.recv_loop())
+        self.loop.create_task(self.group_broadcast_loop())
+        self.loop.create_task(self.broadcast_loop())
 
 
 def connect_all(peers):
@@ -115,8 +147,7 @@ def main():
     connect_linked(peers)
 
     for peer in peers:
-        loop.create_task(peer.recv_loop())
-        loop.create_task(peer.broadcast_loop())
+        peer.start()
 
     loop.run_forever()
 
