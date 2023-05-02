@@ -3,11 +3,10 @@ import zmq.asyncio
 import os
 import asyncio
 import logging
-from random import randint
 
 
 class Peer(ABC):
-    def __init__(self, address, group_broadcast_delay=1.0, setup=False):
+    def __init__(self, address, group_broadcast_delay=1.0):
         # Peer setup
         self.address = address
         self.done = False
@@ -18,6 +17,8 @@ class Peer(ABC):
         self.pub_socket = self.ctx.socket(zmq.PUB)
         self.sub_socket = self.ctx.socket(zmq.SUB)
         self.sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")
+
+        self.message_types = {}
 
         # Group setup
         self.group = {}
@@ -34,8 +35,14 @@ class Peer(ABC):
         file_handler.setLevel(logging.DEBUG)
         self.logger.addHandler(file_handler)
 
-        if setup:
-            self.setup()
+        self.__post_init__()
+
+    def __post_init__(self):
+        pass
+
+    @abstractmethod    
+    async def broadcast_loop(self):
+        pass
 
     async def broadcast(self, message):
         await self.pub_socket.send_string(message)
@@ -55,7 +62,7 @@ class Peer(ABC):
     def peers(self) -> list["Peer"]:
         return [self.address] + list(self.group.keys())
     
-    def calculate_health(self):
+    def _calculate_health(self):
         health = self.join_statuses.count("False") / 100
         self.logger.debug(
             f"{self.address}:\n\tPopulation health: {health} {self.GROUP_BROADCAST_DELAY=}"
@@ -63,30 +70,24 @@ class Peer(ABC):
         self.health = health
         return health
     
+    def register_message_type(self, message_type, handler):
+        if message_type not in self.message_types:
+            self.message_types[message_type] = handler
+
+    async def message_type_handler(self, message):
+        for message_type, handler in self.message_types.items():
+            if message.startswith(f"{message_type}="):
+                return await handler(self, message[len(message_type) + 1:])
+
     async def recv_loop(self):
         while not self.done:
             try:
                 message = await self.sub_socket.recv_string()
                 self.logger.debug(f"{self.address}:\n\tReceived message: {message}")
 
-                # Todo: register peer communication types
-                if message.startswith("JOINED="):
-                    self.join_statuses.append(message[7:])
-                    if len(self.join_statuses) > 100:
-                        self.join_statuses.pop(0)
-                    self.calculate_health()
-
-                elif message.startswith("GROUP="):
-                    group = message[6:].translate({ord(c): None for c in "[]' "}).split(",")
-                    for peer in group:
-                        joined = self.join_group(peer)
-                        await self.broadcast(f"JOINED={joined}")
+                await self.message_type_handler(message)                   
             except Exception as e:
                 self.logger.error(f"Error: {e}")
-
-    @abstractmethod    
-    async def broadcast_loop(self):
-        pass
 
     async def group_broadcast_loop(self):
         while not self.done:
@@ -142,12 +143,3 @@ class Peer(ABC):
     def __eq__(self, other):
         return self.address == other.address
     
-
-class RandomPeer(Peer):
-    async def broadcast_loop(self):
-        while not self.done:
-            try:
-                await asyncio.sleep(randint(1, 3))
-                await self.broadcast(f"RANDOM={randint(1, 100)}")
-            except Exception as e:
-                self.logger.error(f"Error: {e}")
