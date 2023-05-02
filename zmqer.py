@@ -10,7 +10,8 @@ import zmq.asyncio
 class Peer:
     def __init__(self, address, group_broadcast_rate=5.0):
         self.address = address
-        self.GROUP_BROADCAST_RATE = group_broadcast_rate
+        self.BASE_GROUP_BROADCAST_RATE = group_broadcast_rate
+        self.GROUP_BROADCAST_RATE = self.BASE_GROUP_BROADCAST_RATE
 
         self.loop = asyncio.get_event_loop()
         self.ctx = zmq.asyncio.Context()
@@ -22,11 +23,12 @@ class Peer:
         self.sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")
         self.group = {}
 
-        self.join_statuses = []
+        self.health = 0.0
+        self.join_statuses = 100 * [True]
 
         self.logger = logging.getLogger(self.__class__.__name__)
         os.makedirs("logs", exist_ok=True)
-        file_handler = logging.FileHandler(f"logs/{self.address[6:]}debug.log")
+        file_handler = logging.FileHandler(f"logs/{self.address[6:]}.log")
         file_handler.setLevel(logging.DEBUG)
         self.logger.addHandler(file_handler)
 
@@ -49,6 +51,7 @@ class Peer:
         self.logger.debug(
             f"{self.address}:\n\tReceived JOINED_GROUP message: {message}\n\t\t{self.group}\n\t\tPopulation health: {health}"
         )
+        self.health = health
         return health
 
     async def recv(self):
@@ -89,11 +92,21 @@ class Peer:
 
         self.logger.debug(f"{self.address}:\n\tBroadcasted group: {peers}")
 
+    def update_broadcast_rate(self):
+        """Dynamically updates broadcast rate based on health of the population"""
+        if self.health < 0.5:
+            self.GROUP_BROADCAST_RATE = self.BASE_GROUP_BROADCAST_RATE * 2
+        elif self.health > 0.9:
+            self.GROUP_BROADCAST_RATE = self.BASE_GROUP_BROADCAST_RATE / 2
+        else:
+            self.GROUP_BROADCAST_RATE = self.BASE_GROUP_BROADCAST_RATE
+
     async def group_broadcast_loop(self):
         while True:
             try:
                 await asyncio.sleep(self.GROUP_BROADCAST_RATE)
                 await self.broadcast_group()
+                self.update_broadcast_rate()
             except Exception as e:
                 self.logger.error(f"Error: {e}")
 
@@ -134,7 +147,7 @@ def main():
     loop = asyncio.get_event_loop()
 
     starting_port = 5555 + randint(0, 1000)
-    n_peers = 3
+    n_peers = 10
 
     peers = [
         Peer(address)
