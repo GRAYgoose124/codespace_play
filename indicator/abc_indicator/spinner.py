@@ -28,7 +28,7 @@ class SpinnerLoadingIndicator(LoadingIndicator):
             self.step_callback(self.spinner_chars[self.counter % len(self.spinner_chars)])
             self.counter += 1
             await asyncio.sleep(self.interval)
-        self.done_callback()
+        self.done_callback(self.counter)
 
     @staticmethod
     def default_step_callback(spinner_char):
