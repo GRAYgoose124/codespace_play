@@ -28,8 +28,12 @@ def main():
     for peer in peers:
         tasks.extend(peer.setup())
 
-    loop.run_until_complete(asyncio.gather(*tasks))
-
+    try:
+        loop.run_until_complete(asyncio.gather(*tasks))
+    except KeyboardInterrupt:
+        # Cancel all tasks
+        for task in tasks:
+            task.cancel()
 
 if __name__ == "__main__":
     main()
