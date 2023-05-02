@@ -47,14 +47,22 @@ def progress(indicator):
     """Decorator to wrap a coroutine function with the LoadingIndicator run function."""
     def wrapped_callback(callback):
         async def wrapped():
-            await callback()
+            result = await callback()
             indicator.done()
+            return result
 
         async def new_callback():
-            await asyncio.gather(indicator.run(), wrapped())
-            
+            run_task = asyncio.create_task(indicator.run())
+            wrapped_task = asyncio.create_task(wrapped())
+            done, pending = await asyncio.wait({run_task, wrapped_task}, return_when=asyncio.FIRST_COMPLETED)
+            for task in pending:
+                await task
+            return next(iter(done)).result()
+
         return new_callback
+
     return wrapped_callback
+
 
 
 async def main():
@@ -75,9 +83,9 @@ async def main():
         @progress(indicator)
         async def my_task():
             await asyncio.sleep(2)
+            return "RESULT"
 
-        # Run the decorated task
-        await my_task()
+        print(f"\n{await my_task()}")
     finally:
         # Remove the signal handler when the program is done
         loop.remove_signal_handler(signal.SIGINT)
