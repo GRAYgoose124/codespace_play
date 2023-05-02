@@ -10,7 +10,6 @@ class Peer(ABC):
         # Peer setup
         self.address = address
         self.done = False
-
         # ZMQ / asyncio setup
         self.loop = asyncio.get_event_loop()
         self.ctx = zmq.asyncio.Context()
@@ -19,13 +18,6 @@ class Peer(ABC):
         self.sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")
 
         self.message_types = {}
-
-        # Group setup
-        self.group = {}
-        self.health = 0.0
-        self.join_statuses = 100 * [True]
-        self.BASE_GROUP_BROADCAST_DELAY = group_broadcast_delay
-        self.GROUP_BROADCAST_DELAY = self.BASE_GROUP_BROADCAST_DELAY
 
         # Logging setup
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -48,27 +40,9 @@ class Peer(ABC):
         await self.pub_socket.send_string(message)
         self.logger.debug(f"{self.address}:\n\tSent message: {message}")
 
-    def join_group(self, group_address):
-        if group_address != self.address and group_address not in self.group:
-            self.sub_socket.connect(group_address)
-            self.group[group_address] = self.sub_socket
-            self.logger.debug(
-                f"{self.address}:\n\tJoined group: {group_address}\n\t\t{self.group}"
-            )
-            return True
-        return False
-
     @property
     def peers(self) -> list["Peer"]:
         return [self.address] + list(self.group.keys())
-    
-    def _calculate_health(self):
-        health = self.join_statuses.count("False") / 100
-        self.logger.debug(
-            f"{self.address}:\n\tPopulation health: {health} {self.GROUP_BROADCAST_DELAY=}"
-        )
-        self.health = health
-        return health
     
     def register_message_type(self, message_type, handler):
         if message_type not in self.message_types:
@@ -89,27 +63,6 @@ class Peer(ABC):
             except Exception as e:
                 self.logger.error(f"Error: {e}")
 
-    async def group_broadcast_loop(self):
-        while not self.done:
-            try:
-                await asyncio.sleep(self.GROUP_BROADCAST_DELAY)
-
-                peers = self.peers
-                await self.broadcast(f"GROUP={peers}")
-                self.logger.debug(f"{self.address}:\n\tBroadcasted group: {peers}")
-
-                # Update broadcast delay based on health of the population
-                if self.health < 0.5:
-                    self.GROUP_BROADCAST_DELAY = max(
-                        self.GROUP_BROADCAST_DELAY / (2 + (1 - self.health)), 0.25
-                    )
-                elif self.health > 0.9:
-                    self.GROUP_BROADCAST_DELAY = self.GROUP_BROADCAST_DELAY * 2
-                else:
-                    self.GROUP_BROADCAST_DELAY = self.BASE_GROUP_BROADCAST_DELAY
-            except Exception as e:
-                self.logger.error(f"Error: {e}")
-
     def setup(self):
         self.done = False
         self.pub_socket.bind(self.address)
@@ -117,7 +70,6 @@ class Peer(ABC):
 
         self._tasks = [
             self.loop.create_task(self.recv_loop()),
-            self.loop.create_task(self.group_broadcast_loop()),
             self.loop.create_task(self.broadcast_loop())
         ]
 
