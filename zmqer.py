@@ -8,10 +8,10 @@ import zmq.asyncio
 
 
 class Peer:
-    def __init__(self, address, group_broadcast_rate=5.0):
+    def __init__(self, address, group_broadcast_delay=1.0):
         self.address = address
-        self.BASE_GROUP_BROADCAST_RATE = group_broadcast_rate
-        self.GROUP_BROADCAST_RATE = self.BASE_GROUP_BROADCAST_RATE
+        self.BASE_GROUP_BROADCAST_DELAY = group_broadcast_delay
+        self.GROUP_BROADCAST_DELAY = self.BASE_GROUP_BROADCAST_DELAY
 
         self.loop = asyncio.get_event_loop()
         self.ctx = zmq.asyncio.Context()
@@ -95,16 +95,16 @@ class Peer:
     def update_broadcast_rate(self):
         """Dynamically updates broadcast rate based on health of the population"""
         if self.health < 0.5:
-            self.GROUP_BROADCAST_RATE = self.BASE_GROUP_BROADCAST_RATE * 2
+            self.GROUP_BROADCAST_DELAY = self.GROUP_BROADCAST_DELAY / 2
         elif self.health > 0.9:
-            self.GROUP_BROADCAST_RATE = self.BASE_GROUP_BROADCAST_RATE / 2
+            self.GROUP_BROADCAST_DELAY = self.GROUP_BROADCAST_DELAY * 2
         else:
-            self.GROUP_BROADCAST_RATE = self.BASE_GROUP_BROADCAST_RATE
+            self.GROUP_BROADCAST_DELAY = self.BASE_GROUP_BROADCAST_DELAY
 
     async def group_broadcast_loop(self):
         while True:
             try:
-                await asyncio.sleep(self.GROUP_BROADCAST_RATE)
+                await asyncio.sleep(self.GROUP_BROADCAST_DELAY)
                 await self.broadcast_group()
                 self.update_broadcast_rate()
             except Exception as e:
