@@ -1,14 +1,12 @@
-import asyncio
-from itertools import combinations
-import os
-from random import randint, random
-import time
-import logging
 import zmq.asyncio
+import os
+import asyncio
+import logging
+from random import randint
 
 
 class Peer:
-    def __init__(self, address, group_broadcast_delay=1.0):
+    def __init__(self, address, group_broadcast_delay=1.0, setup=False):
         # Peer setup
         self.address = address
         self.done = False
@@ -34,6 +32,9 @@ class Peer:
         file_handler = logging.FileHandler(f"logs/{self.address[6:]}.log")
         file_handler.setLevel(logging.DEBUG)
         self.logger.addHandler(file_handler)
+
+        if setup:
+            self.setup()
 
     async def broadcast(self, message):
         await self.pub_socket.send_string(message)
@@ -132,52 +133,14 @@ class Peer:
         self.sub_socket.close()
         self.pub_socket.close()
 
-
-def connect_all(peers):
-    for p, p2 in combinations(peers, 2):
-        p.join_group(p2.address)
-        p2.join_group(p.address)
-
-
-def connect_linked(peers):
-    for p, p2 in zip(peers, peers[1:]):
-        p.join_group(p2.address)
-
-    peers[-1].join_group(peers[0].address)
-
-
-def connect_random(peers):
-    for p, p2 in combinations(peers, 2):
-        if random() < 0.5:
-            p.join_group(p2.address)
-            p2.join_group(p.address)
-
-
-def main():
-    logging.basicConfig(level=logging.DEBUG)
-    logging.root.handlers[0].stream = None
-    loop = asyncio.get_event_loop()
-
-    starting_port = 5555 + randint(0, 1000)
-    n_peers = 5
-
-    peers = [
-        Peer(address)
-        for address in [
-            f"tcp://127.0.0.1:{port}"
-            for port in range(starting_port, starting_port + n_peers)
-        ]
-    ]
-
-    connect_linked(peers)
-
-    tasks = []
-    for peer in peers:
-        tasks.extend(peer.setup())
-
-    loop.run_until_complete(asyncio.gather(*tasks))
-
-
-
-if __name__ == "__main__":
-    main()
+    def __repr__(self):
+        return f"<Peer {self.address}>"
+    
+    def __str__(self):
+        return self.address
+    
+    def __hash__(self):
+        return hash(self.address)
+    
+    def __eq__(self, other):
+        return self.address == other.address
