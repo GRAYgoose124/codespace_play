@@ -24,4 +24,5 @@ class RandomPeer(JsonPeer):
         data = await super().workload()
         data.update({"random": randint(1, 100)})
 
+        await asyncio.sleep(3.0)
         return data

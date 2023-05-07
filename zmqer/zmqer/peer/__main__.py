@@ -75,11 +75,17 @@ class Peer(ABC):
         else:
             self.message_types[message_type].append(handler)
 
+        self.logger.debug(
+            f"Registered message type: {message_type}, {handler.__class__.__name__} {overwrite=}"
+        )
+
     async def message_type_handler(self, message):
         for message_type, handlers in self.message_types.items():
             if message.startswith(f"{message_type}="):
                 received_data = message[len(message_type) + 1 :]
-                self.logger.debug(f"Received PACKET: {message_type}={received_data}")
+                self.logger.debug(
+                    f"Received PACKET: {message_type}={received_data}, {handlers=}"
+                )
                 # TODO: can gather this?
                 for handler in handlers:
                     await handler(self, received_data)

@@ -3,6 +3,7 @@ from random import randint
 import logging
 import shutil
 import os
+import argparse
 
 from zmqer.misc import connect_linked
 
@@ -14,34 +15,89 @@ async def teardown_peers(peers):
     await asyncio.gather(*(p.teardown() for p in peers), return_exceptions=True)
 
 
+def argparser():
+    parser = argparse.ArgumentParser()
+    # logging
+    parser.add_argument(
+        "-lt",
+        "--log-to",
+        type=str,
+        default="stdout",
+        choices=["stdout", "file", None],
+        help="Where to log output",
+    )
+    parser.add_argument(
+        "-v",
+        "--log-level",
+        type=str,
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Logging level",
+    )
+
+    # peer setup
+    parser.add_argument(
+        "-psd",
+        "--peer-setup-delay",
+        type=float,
+        default=30.0,
+        help="Delay in seconds before setting up late-start peers",
+    )
+    parser.add_argument(
+        "-n",
+        "--n-peers",
+        type=int,
+        default=20,
+        help="Number of peers to instantiate",
+    )
+    parser.add_argument(
+        "-nl",
+        "--n-late-start-peers",
+        type=float,
+        default=0.1,
+        help="Number of late-start peers to instantiate as a percentage of n_peers",
+    )
+    parser.add_argument(
+        "-sp",
+        "--starting-port",
+        type=int,
+        default=5555 + randint(0, 1000),
+        help="Starting port for peer addresses",
+    )
+
+    return parser
+
+
 def main():
-    PEER_SETUP_DELAY = 30.0
+    args = argparser().parse_args()
 
     # setup logging
-    log_to = "stdout"
-    log_level = logging.DEBUG
-    logging.basicConfig(level=log_level)
+    logging.basicConfig(level=args.log_level)
 
     #   reset logs - if using file handlers
-    if log_to == "file":
+    if args.log_to == "file":
         if os.path.exists("logs"):
             shutil.rmtree("logs")
         os.makedirs("logs")
 
     # Instantiate peers for a random port range from starting_port to starting_port+n_peers.
-    starting_port = 5555 + randint(0, 1000)
-    n_peers = 20
 
     #   Log first peer to stdout
     peers = [
-        Peer(f"tcp://127.0.0.1:{starting_port}", log_to=log_to, log_level=log_level)
+        Peer(
+            f"tcp://127.0.0.1:{args.starting_port}",
+            log_to=args.log_to,
+            log_level=args.log_level,
+        )
     ]
     #    Initialize the rest of the peers
     peers += [
         Peer(address)
         for address in [
             f"tcp://127.0.0.1:{port}"
-            for port in range(starting_port + len(peers), starting_port + n_peers)
+            for port in range(
+                args.starting_port + len(peers), args.starting_port + args.n_peers
+            )
         ]
     ]
 
@@ -50,11 +106,11 @@ def main():
     coroutines = set()
     # Create a set of tasks
     for i, peer in enumerate(peers):
-        if i >= n_peers // 2:
+        if i <= int(args.n_peers * args.n_late_start_peers):
             peer.logger.debug("Delaying peer setup")
 
             async def delay_wrapper(task):
-                await asyncio.sleep(PEER_SETUP_DELAY)
+                await asyncio.sleep(args.peer_setup_delay)
                 peer.logger.debug(
                     f"Running delayed peer.setup() task: {task.__class__.__name__}..."
                 )
