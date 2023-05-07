@@ -1,5 +1,6 @@
 from abc import abstractmethod, ABCMeta
 import json
+from typing import Any
 
 from . import GroupPeer
 
@@ -8,6 +9,11 @@ class WorkloadPeer(GroupPeer, metaclass=ABCMeta):
     def register_message_type(self, message_type, handler, overwrite=False):
         self.__workload_type = message_type
         return super().register_message_type(message_type, handler, overwrite)
+
+    @abstractmethod
+    def handle_work(self, data: dict[str, Any]):
+        """Handle the workload"""
+        return data
 
     @abstractmethod
     async def workload_wrapper(self):

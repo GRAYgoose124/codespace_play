@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 import asyncio
 import json
 import time
@@ -15,7 +16,8 @@ class JsonPeer(WorkloadPeer):
         try:
             data = json.loads(workload)
 
-            return data
+            return peer.handle_work(data)
+
         except json.JSONDecodeError as e:
             peer.logger.error(f"Error: {e}")
 
@@ -36,18 +38,13 @@ class RandomPeer(JsonPeer):
     # singleton class var for counter
     _counter = 0
 
-    @staticmethod
-    async def RANDOM_handler(peer: "RandomPeer", workload):
-        data = await JsonPeer.JSON_handler(peer, workload)
-
+    def handle_work(self, data: dict[str, Any]):
+        """Handle the workload"""
         RandomPeer._counter += int(data["random"])
         print(f"GOT THAT RANDOM GOODNESS: {RandomPeer._counter}")
 
-    def __post_init__(self):
-        # super().__post_init__()
-        self.register_message_type("JSON", self.RANDOM_handler)  # , overwrite=True)
-
     def workload(self) -> dict[str, Any]:
+        """Produces a random workload"""
         data = super().workload()
         data.update({"random": randint(1, 100)})
 
