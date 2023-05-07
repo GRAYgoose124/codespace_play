@@ -1,6 +1,6 @@
 import asyncio
 
-from ..base import Peer
+from ...peer import Peer
 
 
 STATUS_LENGTH = 100

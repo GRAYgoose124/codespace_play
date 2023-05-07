@@ -1,11 +1,8 @@
 import asyncio
 import json
-from random import randint
+import time
 
 from . import GroupPeer
-
-
-from ..workload import json_workload as workload
 
 
 class JsonPeer(GroupPeer):
@@ -16,7 +13,7 @@ class JsonPeer(GroupPeer):
         try:
             data = json.loads(message)
 
-            # print(f"Got JSON: {data}")
+            return data
         except json.JSONDecodeError as e:
             peer.logger.error(f"Error: {e}")
 
@@ -24,10 +21,14 @@ class JsonPeer(GroupPeer):
         super().__post_init__()
         self.register_message_type("JSON", self.JSON_handler)
 
+    async def workload(self):
+        output = {"JSON": f"{time.time()}"}
+        return output
+
     async def broadcast_loop(self):
         while not self._done:
             try:
-                data = await workload()
+                data = await getattr(self, "workload")()
                 await self.broadcast("JSON", json.dumps(data))
             except Exception as e:
                 self.logger.error(f"Error: {e}")

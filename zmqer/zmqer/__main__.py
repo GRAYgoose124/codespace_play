@@ -6,7 +6,7 @@ import os
 
 from zmqer.misc import connect_linked
 
-from zmqer.peer import JsonPeer as Peer
+from zmqer.peer import RandomPeer as Peer
 
 
 async def teardown_peers(peers):
@@ -34,7 +34,7 @@ def main():
 
     #   Log first peer to stdout
     peers = [
-        Peer(f"tcp://127.0.0.1:{starting_port}", log_to="stdout", log_level=log_level)
+        Peer(f"tcp://127.0.0.1:{starting_port}", log_to=log_to, log_level=log_level)
     ]
     #    Initialize the rest of the peers
     peers += [

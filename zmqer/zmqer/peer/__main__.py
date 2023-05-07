@@ -69,16 +69,20 @@ class Peer(ABC):
     def types(self) -> list[str]:
         return self.message_types.keys()
 
-    def register_message_type(self, message_type, handler):
-        if message_type not in self.message_types:
-            self.message_types[message_type] = handler
+    def register_message_type(self, message_type, handler, overwrite=False):
+        if message_type not in self.message_types or overwrite:
+            self.message_types[message_type] = [handler]
+        else:
+            self.message_types[message_type].append(handler)
 
     async def message_type_handler(self, message):
-        for message_type, handler in self.message_types.items():
+        for message_type, handlers in self.message_types.items():
             if message.startswith(f"{message_type}="):
                 received_data = message[len(message_type) + 1 :]
                 self.logger.debug(f"Received PACKET: {message_type}={received_data}")
-                return await handler(self, received_data)
+                # TODO: can gather this?
+                for handler in handlers:
+                    await handler(self, received_data)
 
     async def recv_loop(self):
         while not self.done:

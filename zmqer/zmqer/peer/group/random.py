@@ -1,5 +1,6 @@
 import asyncio
 from random import randint
+from typing_extensions import override
 
 from .json import JsonPeer
 
@@ -10,17 +11,17 @@ class RandomPeer(JsonPeer):
 
     @staticmethod
     async def RANDOM_handler(peer: "RandomPeer", message):
-        RandomPeer._counter += int(message)
+        data = super().JSON_handler(peer, message)
+
+        RandomPeer._counter += int(data["random"])
         print(f"GOT THAT RANDOM GOODNESS: {RandomPeer._counter}")
 
     def __post_init__(self):
         super().__post_init__()
-        self.register_message_type("RANDOM", self.RANDOM_handler)
+        self.register_message_type("JSON", self.RANDOM_handler, overwrite=True)
 
-    async def broadcast_loop(self):
-        while not self._done:
-            try:
-                await asyncio.sleep(randint(1, 3))
-                await self.broadcast("RANDOM", randint(1, 100))
-            except Exception as e:
-                self.logger.error(f"Error: {e}")
+    async def workload(self):
+        data = await super().workload()
+        data.update({"random": randint(1, 100)})
+
+        return data

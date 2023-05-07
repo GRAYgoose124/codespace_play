@@ -1,4 +1,4 @@
-from .base import Peer
+from .__main__ import Peer
 
 from .group import GroupPeer, JsonPeer, RandomPeer
 
