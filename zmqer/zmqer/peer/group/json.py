@@ -8,11 +8,11 @@ from typing import Any
 from . import WorkloadPeer
 
 
-class JsonPeer(WorkloadPeer):
+# S/N: We don't need to explicitly state ABCMeta because the base Peer is an ABC.
+class JsonPeer(WorkloadPeer, metaclass=ABCMeta):
     @staticmethod
     async def JSON_handler(peer: "JsonPeer", workload: str):
         """Parse json message"""
-        # do something with the message as dict
         try:
             data = json.loads(workload)
 
@@ -25,6 +25,7 @@ class JsonPeer(WorkloadPeer):
         super().__post_init__()
         self.register_message_type("JSON", self.JSON_handler)
 
+    @abstractmethod
     def workload(self) -> dict[str, Any]:
         output = {"JSON": f"{time.time()}"}
         return output
@@ -41,6 +42,24 @@ class RandomPeer(JsonPeer):
     def handle_work(self, data: dict[str, Any]):
         """Handle the workload"""
         RandomPeer._counter += int(data["random"])
+        print(f"GOT THAT RANDOM GOODNESS: {RandomPeer._counter}")
+
+    def workload(self) -> dict[str, Any]:
+        """Produces a random workload"""
+        data = super().workload()
+        data.update({"random": randint(1, 100)})
+
+        return data
+
+
+class RandomNetSeparatedPeer(JsonPeer):
+    def __init__(self, *args, **kwargs):
+        self._counter = 0
+        super().__init__(*args, **kwargs)
+
+    def handle_work(self, data: dict[str, Any]):
+        """Handle the workload"""
+        self._counter += int(data["random"])
         print(f"GOT THAT RANDOM GOODNESS: {RandomPeer._counter}")
 
     def workload(self) -> dict[str, Any]:

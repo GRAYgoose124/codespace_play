@@ -1,25 +1,27 @@
-from abc import abstractmethod, ABCMeta
+from abc import abstractmethod
 import json
 from typing import Any
 
 from . import GroupPeer
 
 
-class WorkloadPeer(GroupPeer, metaclass=ABCMeta):
+class WorkloadPeer(GroupPeer):
     def register_message_type(self, message_type, handler, overwrite=False):
         self.__workload_type = message_type
         return super().register_message_type(message_type, handler, overwrite)
 
     @abstractmethod
-    def handle_work(self, data: dict[str, Any]):
+    def handle_work(self, data: str):
         """Handle the workload"""
-        return data
+        pass
 
     @abstractmethod
-    async def workload_wrapper(self):
+    async def workload_wrapper(self) -> str:
+        """Produce the workload"""
         pass
 
     async def broadcast_loop(self):
+        """Broadcast the workload"""
         while not self.done:
             try:
                 data = await getattr(self, "workload_wrapper")()

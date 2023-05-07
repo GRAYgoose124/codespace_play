@@ -24,15 +24,21 @@ def argparser():
         type=str,
         default="stdout",
         choices=["stdout", "file", None],
-        help="Where to log output",
+        help="Where to log output.",
     )
     parser.add_argument(
         "-v",
         "--log-level",
         type=str,
         default="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "v"],
         help="Logging level",
+    )
+    parser.add_argument(
+        "-la",
+        "--log-all",
+        action="store_true",
+        help="Log all messages, not just those from specified logging peers.",
     )
 
     # peer setup
@@ -41,36 +47,39 @@ def argparser():
         "--peer-setup-delay",
         type=float,
         default=30.0,
-        help="Delay in seconds before setting up late-start peers",
+        help="Delay in seconds before setting up late-start peers.",
     )
     parser.add_argument(
         "-n",
         "--n-peers",
         type=int,
         default=20,
-        help="Number of peers to instantiate",
+        help="Number of peers to instantiate.",
     )
     parser.add_argument(
         "-nl",
         "--n-late-start-peers",
         type=float,
         default=0.1,
-        help="Number of late-start peers to instantiate as a percentage of n_peers",
+        help="Number of late-start peers to instantiate as a percentage of n_peers.",
     )
     parser.add_argument(
         "-sp",
         "--starting-port",
         type=int,
         default=5555 + randint(0, 1000),
-        help="Starting port for peer addresses",
+        help="Starting port for peer addresses. (defaults to 5555+randint(1000))",
     )
 
-    return parser
+    args = parser.parse_args()
+    if args.log_level == "v":
+        args.log_level = "DEBUG"
+
+    return args
 
 
 def main():
-    args = argparser().parse_args()
-
+    args = argparser()
     # setup logging
     logging.basicConfig(level=args.log_level)
 
@@ -92,7 +101,11 @@ def main():
     ]
     #    Initialize the rest of the peers
     peers += [
-        Peer(address)
+        Peer(
+            address,
+            log_to=args.log_to if args.log_all else None,
+            log_level=args.log_level,
+        )
         for address in [
             f"tcp://127.0.0.1:{port}"
             for port in range(
