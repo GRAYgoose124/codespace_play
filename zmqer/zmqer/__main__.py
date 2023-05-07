@@ -1,7 +1,9 @@
 import asyncio
 from random import randint
-
 import logging
+import shutil
+import os
+
 
 from zmqer.peer.group import RandomGroupPeer as Peer
 from zmqer.misc import connect_linked
@@ -17,6 +19,11 @@ def main():
 
     logging.basicConfig(level=logging.DEBUG)
     loop = asyncio.get_event_loop()
+
+    # reset logs
+    if os.path.exists("logs"):
+        shutil.rmtree("logs")
+    os.makedirs("logs")
 
     starting_port = 5555 + randint(0, 1000)
     n_peers = 20

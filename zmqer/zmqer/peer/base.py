@@ -24,7 +24,6 @@ class Peer(ABC):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.propagate = False
 
-        os.makedirs("logs", exist_ok=True)
         file_handler = logging.FileHandler(f"logs/{self.address[6:]}.log")
         file_handler.setLevel(logging.DEBUG)
         file_handler.addFilter(logging.Filter(self.__class__.__name__))
