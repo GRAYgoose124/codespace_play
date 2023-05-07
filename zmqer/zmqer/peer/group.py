@@ -75,33 +75,9 @@ class GroupPeer(Peer):
 
         return group
 
-    @staticmethod
-    async def ANNOUNCER_handler(peer: "GroupPeer", message):
-        """Procced by an enabled group broadcast peer sending ANNOUNCER=.
-
-        Used to determine democratic vote on the next announcers when a new
-        group broadcast stage
-
-        If there are not enough announcers, a peer receiving this message will
-        become an announcer.
-
-        If the health is at 1.0, only one announcer is needed and receiving this
-        message will disable the peer's announcer status.
-
-        If the health is at 0.0, all peers will become announcers and receiving
-        this message will enable the peer's announcer status.
-
-        if 0.0 < health < 1.0, the number of announcers is proportional to the
-        health of the population. At 0.5, percentage*half of the population will be
-        announcers.
-
-
-        """
-
     def __post_init__(self):
         self.register_message_type("JOINED", self.JOINED_handler)
         self.register_message_type("GROUP", self.GROUP_handler)
-        self.register_message_type("ANNOUNCER", self.ANNOUNCER_handler)
 
     async def group_broadcast_stage(self):
         while not self._done:
@@ -119,14 +95,6 @@ class GroupPeer(Peer):
                             :STATUS_LENGTH
                         ]
 
-                # Update broadcast delay based on health of the population
-                # DEMOCRATIC GROUP LOGIC
-                # If a population is healthy, decrease the number of nodes performing group announcements.
-                # 1.0 == 100% of the population is healthy, every node has every other node in its group.
-                # 0.0 == 0% of the population is healthy, no node has enough(coupled to STATUS_LENGTH) nodes in its group.
-                # At 1.0, we only need one node to broadcast the group.
-                # At 0.0, we want every node or some percentage to broadcast the group.
-                # The broadcast delay is now fixed per node, so that we only need to adjust the number of nodes broadcasting.
                 await asyncio.sleep(self.GROUP_BROADCAST_DELAY)
             except Exception as e:
                 self.logger.error(f"Error: {e}")
