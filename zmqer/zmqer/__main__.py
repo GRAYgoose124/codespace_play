@@ -8,11 +8,13 @@ from zmqer.misc import connect_linked
 
 
 def main():
+    PEER_SETUP_DELAY = 30.0
+
     logging.basicConfig(level=logging.DEBUG)
     loop = asyncio.get_event_loop()
 
     starting_port = 5555 + randint(0, 1000)
-    n_peers = 5
+    n_peers = 20
 
     peers = [
         Peer(address)
@@ -27,15 +29,18 @@ def main():
     coroutines = set()
     # Create a set of tasks
     for i, peer in enumerate(peers):
-        if i == n_peers - 1:
+        if i >= n_peers // 2:
+            peer.logger.debug("Delaying peer setup")
 
-            async def delay_wrapper():
-                await asyncio.sleep(10)
-                logging.info("Delaying peer setup")
-                ts = peer.setup()
-                coroutines.update(ts)
+            async def delay_wrapper(task):
+                await asyncio.sleep(PEER_SETUP_DELAY)
+                peer.logger.debug(
+                    f"Running delayed peer.setup() task: {task.__class__.__name__}..."
+                )
+                await task
 
-            coroutines.add(delay_wrapper())
+            for task in peer.setup():
+                coroutines.add(delay_wrapper(task))
         else:
             coroutines.update(peer.setup())
 

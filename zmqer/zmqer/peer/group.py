@@ -10,7 +10,7 @@ NEW_PEER_DAMAGE = STATUS_LENGTH // 10
 
 
 class GroupPeer(Peer):
-    def __init__(self, address, group_broadcast_delay=1.0):
+    def __init__(self, address, group_broadcast_delay=5.0):
         # Group setup
         self.group = {}
         self.health = 0.0
@@ -33,6 +33,7 @@ class GroupPeer(Peer):
         """
         # Lets make a new peer hurt the population.
         if message == "True":
+            peer.logger.debug(f"{peer.address}:\n\tNew peer joined")
             message = [True] * NEW_PEER_DAMAGE
         if message == "False":
             message = [False]
@@ -42,12 +43,11 @@ class GroupPeer(Peer):
             peer.join_statuses = peer.join_statuses[:STATUS_LENGTH]
 
         # Health is maximized when all joins were false.
-        health = peer.join_statuses.count(False) / STATUS_LENGTH
+        peer.health = peer.join_statuses.count(False) / STATUS_LENGTH
         peer.logger.debug(
-            f"{peer.address}:\n\tPopulation health: {health} {peer.GROUP_BROADCAST_DELAY=}"
+            f"{peer.address}:\n\tPopulation health: {peer.health}\t broadcast ratio: {peer.broadcast_ratio}"
         )
-        peer.health = health
-        return health
+        return peer.health
 
     @staticmethod
     async def GROUP_handler(peer: "GroupPeer", message):
@@ -68,10 +68,14 @@ class GroupPeer(Peer):
         group = message.translate({ord(c): None for c in "[]' "}).split(",")
 
         # join the group of each peer - union of all peer's groups.
+        joined = False
         for p in group:
-            joined = peer.join_group(p)
+            joined = joined or peer.join_group(p)
             # We broadcast our join status to the group for health monitoring.
-            await peer.broadcast(f"JOINED={joined}")
+
+        # Technically this means if we join any group, we're going to
+        # damage all groups. this is fine.
+        await peer.broadcast(f"JOINED={joined}")
 
         return group
 
@@ -82,12 +86,14 @@ class GroupPeer(Peer):
     async def group_broadcast_stage(self):
         while not self._done:
             try:
-                broadcast_ratio = self.broadcast_statuses.count(True) / STATUS_LENGTH
-                if self.health < broadcast_ratio:
+                self.broadcast_ratio = (
+                    self.broadcast_statuses.count(True) / STATUS_LENGTH
+                )
+                if self.health < self.broadcast_ratio:
                     peers = self.peers
                     await self.broadcast(f"GROUP={peers}")
                     self.logger.debug(
-                        f"{self.address}:\n\tBroadcasted group: {peers}\n\t\t{broadcast_ratio=}"
+                        f"{self.address}:\n\tBroadcasted group: {peers}\n\t\t{self.broadcast_ratio=}"
                     )
                     self.broadcast_statuses = [False] + self.broadcast_statuses
                     if len(self.broadcast_statuses) > STATUS_LENGTH:
