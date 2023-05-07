@@ -1,8 +1,6 @@
-from random import randint
 import asyncio
 
 from .base import Peer
-from ..misc import call_super
 
 
 STATUS_LENGTH = 100
@@ -73,7 +71,7 @@ class GroupPeer(Peer):
 
         # Technically this means if we join any group, we're going to
         # damage all groups. this is fine.
-        await peer.broadcast(f"JOINED={joined}")
+        await peer.broadcast("JOINED", joined)
 
         return group
 
@@ -89,7 +87,7 @@ class GroupPeer(Peer):
                 )
                 if self.health < self.broadcast_ratio:
                     peers = self.peers
-                    await self.broadcast(f"GROUP={peers}")
+                    await self.broadcast("GROUP", peers)
                     self.logger.debug(
                         f"{self.address}:\n\tBroadcasted group: {peers}\n\t\t{self.broadcast_ratio=}"
                     )
@@ -118,25 +116,3 @@ class GroupPeer(Peer):
         self._tasks.append(self.loop.create_task(self.group_broadcast_stage()))
 
         return self.tasks
-
-
-class RandomGroupPeer(GroupPeer):
-    # singleton class var for counter
-    _counter = 0
-
-    @staticmethod
-    async def RANDOM_handler(peer: "RandomGroupPeer", message):
-        RandomGroupPeer._counter += int(message)
-        print(f"GOT THAT RANDOM GOODNESS: {RandomGroupPeer._counter}")
-
-    def __post_init__(self):
-        super().__post_init__()
-        self.register_message_type("RANDOM", self.RANDOM_handler)
-
-    async def broadcast_loop(self):
-        while not self._done:
-            try:
-                await asyncio.sleep(randint(1, 3))
-                await self.broadcast(f"RANDOM={randint(1, 100)}")
-            except Exception as e:
-                self.logger.error(f"Error: {e}")

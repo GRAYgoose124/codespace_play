@@ -38,8 +38,8 @@ class Peer(ABC):
     async def broadcast_loop(self):
         pass
 
-    async def broadcast(self, message):
-        await self.pub_socket.send_string(message)
+    async def broadcast(self, type, message):
+        await self.pub_socket.send_string(f"{type}={message}")
         self.logger.debug(f"{self.address}:\n\tSent message: {message}")
 
     @property
