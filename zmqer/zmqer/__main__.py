@@ -24,16 +24,29 @@ def main():
 
     connect_linked(peers)
 
-    tasks = []
-    for peer in peers:
-        tasks.extend(peer.setup())
+    coroutines = set()
+    # Create a set of tasks
+    for i, peer in enumerate(peers):
+        if i == n_peers - 1:
+
+            async def delay_wrapper():
+                await asyncio.sleep(10)
+                logging.info("Delaying peer setup")
+                ts = peer.setup()
+                coroutines.update(ts)
+
+            coroutines.add(delay_wrapper())
+        else:
+            coroutines.update(peer.setup())
 
     try:
-        loop.run_until_complete(asyncio.gather(*tasks))
+        fut = asyncio.gather(*coroutines)
+        loop.run_until_complete(fut)
     except KeyboardInterrupt:
-        # Cancel all tasks
-        for task in tasks:
-            task.cancel()
+        logging.info("KeyboardInterrupt received, cancelling tasks...")
+    finally:
+        loop.close()
+
 
 if __name__ == "__main__":
     main()

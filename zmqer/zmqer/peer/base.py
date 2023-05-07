@@ -9,7 +9,7 @@ class Peer(ABC):
     def __init__(self, address, group_broadcast_delay=1.0):
         # Peer setup
         self.address = address
-        self.done = False
+        self._done = False
         self._tasks = []
 
         # ZMQ / asyncio setup
@@ -23,8 +23,8 @@ class Peer(ABC):
         # Logging setup
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.propagate = False
-        os.makedirs("zmqer_logs", exist_ok=True)
-        file_handler = logging.FileHandler(f"zmqer_logs/{self.address[6:]}.log")
+        os.makedirs("logs", exist_ok=True)
+        file_handler = logging.FileHandler(f"logs/{self.address[6:]}.log")
         file_handler.setLevel(logging.DEBUG)
         self.logger.addHandler(file_handler)
 
@@ -44,6 +44,10 @@ class Peer(ABC):
     @property
     def tasks(self):
         return self._tasks
+
+    @property
+    def done(self):
+        return self._done
 
     @property
     def peers(self) -> list["Peer"]:
@@ -69,7 +73,7 @@ class Peer(ABC):
                 self.logger.error(f"Error: {e}")
 
     def setup(self):
-        self.done = False
+        self._done = False
         self.pub_socket.bind(self.address)
         self.sub_socket.connect(self.address)
 
@@ -81,7 +85,7 @@ class Peer(ABC):
         return self._tasks
 
     def teardown(self):
-        self.done = True
+        self._done = True
         for task in self._tasks:
             task.cancel()
         self._tasks = []
@@ -90,7 +94,7 @@ class Peer(ABC):
         self.pub_socket.close()
 
     def __repr__(self):
-        return f"<Peer {self.address}>"
+        return f"<Peer {str(self)}>"
 
     def __str__(self):
         return self.address
