@@ -7,13 +7,19 @@ from .group import GroupPeer
 
 class JsonPeer(GroupPeer):
     @staticmethod
-    def JSON_handler(peer: "JsonPeer", message: str) -> dict:
-        """Parse json message and return dict."""
-        return json.loads(message)
+    def JSON_handler(peer: "JsonPeer", message: str) -> str:
+        """Parse json message"""
+        # do something with the message as dict
+        try:
+            data = json.loads(message)
+
+            # print(f"Got JSON: {data}")
+        except json.JSONDecodeError as e:
+            peer.logger.error(f"Error: {e}")
 
     def __post_init__(self):
         super().__post_init__()
-        self.register_message_type("JSON", self.RANDOM_handler)
+        self.register_message_type("JSON", self.JSON_handler)
 
     async def broadcast_loop(self):
         while not self._done:

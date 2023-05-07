@@ -27,6 +27,9 @@ class Peer(ABC):
         file_handler = logging.FileHandler(f"logs/{self.address[6:]}.log")
         file_handler.setLevel(logging.DEBUG)
         file_handler.addFilter(logging.Filter(self.__class__.__name__))
+        file_handler.setFormatter(
+            logging.Formatter("%(filename)s:%(lineno)d>\n\t%(message)s")
+        )
         self.logger.addHandler(file_handler)
 
         self.__post_init__()
@@ -38,9 +41,10 @@ class Peer(ABC):
     async def broadcast_loop(self):
         pass
 
-    async def broadcast(self, type, message):
-        await self.pub_socket.send_string(f"{type}={message}")
-        self.logger.debug(f"{self.address}:\n\tSent message: {message}")
+    async def broadcast(self, type: str, message: str):
+        packet = f"{type}={message}"
+        await self.pub_socket.send_string(packet)
+        self.logger.debug(f"{self.address}:\n\tSent message: {packet}")
 
     @property
     def tasks(self):
@@ -108,3 +112,12 @@ class Peer(ABC):
 
     def __eq__(self, other):
         return self.address == other.address
+
+    def __ne__(self, other):
+        return self.address != other.address
+
+    def __gt__(self, other):
+        return int(self.address.split(":")[1]) > int(other.address.split(":")[1])
+
+    def __lt__(self, other):
+        return int(self.address.split(":")[1]) < int(other.address.split(":")[1])

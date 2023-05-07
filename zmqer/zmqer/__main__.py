@@ -4,8 +4,7 @@ import logging
 import shutil
 import os
 
-
-from zmqer.peer import RandomPeer as Peer
+from zmqer.peer import JsonPeer as Peer
 from zmqer.misc import connect_linked
 
 
