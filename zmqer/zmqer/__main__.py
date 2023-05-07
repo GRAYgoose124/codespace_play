@@ -29,10 +29,15 @@ def main():
     n_peers = 20
 
     peers = [
+        Peer(
+            f"tcp://127.0.0.1:{starting_port}", log_to="stdout", log_level=logging.DEBUG
+        )
+    ]
+    peers += [
         Peer(address)
         for address in [
             f"tcp://127.0.0.1:{port}"
-            for port in range(starting_port, starting_port + n_peers)
+            for port in range(starting_port + 1, starting_port + n_peers)
         ]
     ]
 

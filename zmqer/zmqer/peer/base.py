@@ -7,7 +7,7 @@ import traceback
 
 
 class Peer(ABC):
-    def __init__(self, address, group_broadcast_delay=1.0):
+    def __init__(self, address, log_to=None, log_level=logging.INFO):
         # Peer setup
         self.address = address
         self._done = False
@@ -25,13 +25,19 @@ class Peer(ABC):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.propagate = False
 
-        file_handler = logging.FileHandler(f"logs/{self.address[6:]}.log")
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.addFilter(logging.Filter(self.__class__.__name__))
-        file_handler.setFormatter(
-            logging.Formatter("%(filename)s:%(lineno)d>\n\t%(message)s")
-        )
-        self.logger.addHandler(file_handler)
+        handler = None
+        if log_to == "file":
+            handler = logging.FileHandler(f"logs/{self.address[6:]}.log")
+        elif log_to == "stdout":
+            handler = logging.StreamHandler()
+
+        if handler is not None and log_level is not None:
+            handler.setLevel(log_level)
+            handler.addFilter(logging.Filter(self.__class__.__name__))
+            handler.setFormatter(
+                logging.Formatter("%(filename)s:%(lineno)d>\n\t%(message)s")
+            )
+            self.logger.addHandler(handler)
 
         self.__post_init__()
 

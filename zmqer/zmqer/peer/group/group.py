@@ -8,7 +8,7 @@ NEW_PEER_DAMAGE = STATUS_LENGTH // 10
 
 
 class GroupPeer(Peer):
-    def __init__(self, address, group_broadcast_delay=5.0):
+    def __init__(self, *args, group_broadcast_delay=5.0, **kwargs):
         # Group setup
         self.group = {}
         self.health = 0.0
@@ -16,7 +16,7 @@ class GroupPeer(Peer):
         self.broadcast_statuses = STATUS_LENGTH * [True]
         self.GROUP_BROADCAST_DELAY = group_broadcast_delay
 
-        super().__init__(address, group_broadcast_delay)
+        super().__init__(*args, **kwargs)
 
     @staticmethod
     async def JOINED_handler(peer: "GroupPeer", message):
