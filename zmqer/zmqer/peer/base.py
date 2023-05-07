@@ -47,16 +47,20 @@ class Peer(ABC):
         self.logger.debug(f"{self.address}:\n\tSent message: {packet}")
 
     @property
-    def tasks(self):
+    def tasks(self) -> list[asyncio.Task]:
         return self._tasks
 
     @property
-    def done(self):
+    def done(self) -> bool:
         return self._done
 
     @property
     def peers(self) -> list["Peer"]:
         return [self.address] + list(self.group.keys())
+
+    @property
+    def types(self) -> list[str]:
+        return self.message_types.keys()
 
     def register_message_type(self, message_type, handler):
         if message_type not in self.message_types:
