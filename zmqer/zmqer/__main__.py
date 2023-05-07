@@ -7,6 +7,11 @@ from zmqer.peer.group import RandomGroupPeer as Peer
 from zmqer.misc import connect_linked
 
 
+async def teardown_peers(peers):
+    # Use gather to teardown all peers concurrently
+    await asyncio.gather(*(p.teardown() for p in peers), return_exceptions=True)
+
+
 def main():
     PEER_SETUP_DELAY = 30.0
 
@@ -49,6 +54,10 @@ def main():
         loop.run_until_complete(fut)
     except KeyboardInterrupt:
         logging.info("KeyboardInterrupt received, cancelling tasks...")
+        fut.cancel()
+        loop.run_until_complete(
+            asyncio.gather(*(teardown_peers(peers), fut), return_exceptions=True)
+        )
     finally:
         loop.close()
 

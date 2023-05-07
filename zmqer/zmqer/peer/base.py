@@ -23,9 +23,11 @@ class Peer(ABC):
         # Logging setup
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.propagate = False
+
         os.makedirs("logs", exist_ok=True)
         file_handler = logging.FileHandler(f"logs/{self.address[6:]}.log")
         file_handler.setLevel(logging.DEBUG)
+        file_handler.addFilter(logging.Filter(self.__class__.__name__))
         self.logger.addHandler(file_handler)
 
         self.__post_init__()
@@ -84,10 +86,13 @@ class Peer(ABC):
 
         return self._tasks
 
-    def teardown(self):
+    async def teardown(self):
         self._done = True
         for task in self._tasks:
             task.cancel()
+
+        await asyncio.gather(*self._tasks, return_exceptions=True)
+
         self._tasks = []
 
         self.sub_socket.close()

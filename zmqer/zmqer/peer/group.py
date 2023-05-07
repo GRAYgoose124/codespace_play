@@ -17,8 +17,6 @@ class GroupPeer(Peer):
         self.join_statuses = STATUS_LENGTH * [True]
         self.broadcast_statuses = STATUS_LENGTH * [True]
         self.GROUP_BROADCAST_DELAY = group_broadcast_delay
-        self.PERCENT_GROUP_IS_ANNOUNCER = 0.1
-        self.IS_GROUP_ANNOUNCER = True
 
         super().__init__(address, group_broadcast_delay)
 
