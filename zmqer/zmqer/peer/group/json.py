@@ -1,11 +1,13 @@
 import asyncio
 import json
 import time
+from random import randint
+from typing import Any
 
-from . import GroupPeer
+from . import WorkloadPeer
 
 
-class JsonPeer(GroupPeer):
+class JsonPeer(WorkloadPeer):
     @staticmethod
     async def JSON_handler(peer: "JsonPeer", message: str):
         """Parse json message"""
@@ -25,10 +27,25 @@ class JsonPeer(GroupPeer):
         output = {"JSON": f"{time.time()}"}
         return output
 
-    async def broadcast_loop(self):
-        while not self._done:
-            try:
-                data = await getattr(self, "workload")()
-                await self.broadcast("JSON", json.dumps(data))
-            except Exception as e:
-                self.logger.error(f"Error: {e}")
+
+class RandomPeer(JsonPeer):
+    # singleton class var for counter
+    _counter = 0
+
+    @staticmethod
+    async def RANDOM_handler(peer: "RandomPeer", message):
+        data = await JsonPeer.JSON_handler(peer, message)
+
+        RandomPeer._counter += int(data["random"])
+        print(f"GOT THAT RANDOM GOODNESS: {RandomPeer._counter}")
+
+    def __post_init__(self):
+        # super().__post_init__()
+        self.register_message_type("JSON", self.RANDOM_handler)  # , overwrite=True)
+
+    async def workload(self) -> dict[str, Any]:
+        data = await super().workload()
+        data.update({"random": randint(1, 100)})
+
+        await asyncio.sleep(1.0)
+        return data

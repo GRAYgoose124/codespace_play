@@ -80,7 +80,7 @@ class GroupPeer(Peer):
         self.register_message_type("GROUP", self.GROUP_handler)
 
     async def group_broadcast_stage(self):
-        while not self._done:
+        while not self.done:
             try:
                 self.broadcast_ratio = (
                     self.broadcast_statuses.count(True) / STATUS_LENGTH
