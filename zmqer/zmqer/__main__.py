@@ -17,27 +17,31 @@ async def teardown_peers(peers):
 def main():
     PEER_SETUP_DELAY = 30.0
 
-    logging.basicConfig(level=logging.DEBUG)
-    loop = asyncio.get_event_loop()
+    # setup logging
+    log_to = "stdout"
+    log_level = logging.DEBUG
+    logging.basicConfig(level=log_level)
 
-    # reset logs
-    if os.path.exists("logs"):
-        shutil.rmtree("logs")
-    os.makedirs("logs")
+    #   reset logs - if using file handlers
+    if log_to == "file":
+        if os.path.exists("logs"):
+            shutil.rmtree("logs")
+        os.makedirs("logs")
 
+    # Instantiate peers for a random port range from starting_port to starting_port+n_peers.
     starting_port = 5555 + randint(0, 1000)
     n_peers = 20
 
+    #   Log first peer to stdout
     peers = [
-        Peer(
-            f"tcp://127.0.0.1:{starting_port}", log_to="stdout", log_level=logging.DEBUG
-        )
+        Peer(f"tcp://127.0.0.1:{starting_port}", log_to="stdout", log_level=log_level)
     ]
+    #    Initialize the rest of the peers
     peers += [
         Peer(address)
         for address in [
             f"tcp://127.0.0.1:{port}"
-            for port in range(starting_port + 1, starting_port + n_peers)
+            for port in range(starting_port + len(peers), starting_port + n_peers)
         ]
     ]
 
@@ -62,6 +66,9 @@ def main():
             coroutines.update(peer.setup())
 
     try:
+        # event loop
+        loop = asyncio.get_event_loop()
+
         fut = asyncio.gather(*coroutines)
         loop.run_until_complete(fut)
     except KeyboardInterrupt:

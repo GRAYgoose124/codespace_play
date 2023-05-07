@@ -1,4 +1,4 @@
-from .group import GroupPeer
+from .__main__ import GroupPeer
 from .json import JsonPeer
 
 from .random import RandomPeer

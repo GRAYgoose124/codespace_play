@@ -1,10 +1,10 @@
 import asyncio
 from random import randint
 
-from .json import JsonPeer as Peer
+from .json import JsonPeer
 
 
-class RandomPeer(Peer):
+class RandomPeer(JsonPeer):
     # singleton class var for counter
     _counter = 0
 

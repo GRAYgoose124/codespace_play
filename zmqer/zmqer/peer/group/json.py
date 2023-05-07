@@ -2,7 +2,10 @@ import asyncio
 import json
 from random import randint
 
-from .group import GroupPeer
+from . import GroupPeer
+
+
+from ..workload import json_workload as workload
 
 
 class JsonPeer(GroupPeer):
@@ -24,8 +27,7 @@ class JsonPeer(GroupPeer):
     async def broadcast_loop(self):
         while not self._done:
             try:
-                await asyncio.sleep(3.0)
-                data = {"random": randint(1, 100)}
+                data = await workload()
                 await self.broadcast("JSON", json.dumps(data))
             except Exception as e:
                 self.logger.error(f"Error: {e}")
