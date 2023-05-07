@@ -3,6 +3,7 @@ import zmq.asyncio
 import os
 import asyncio
 import logging
+import traceback
 
 
 class Peer(ABC):
@@ -69,7 +70,9 @@ class Peer(ABC):
     async def message_type_handler(self, message):
         for message_type, handler in self.message_types.items():
             if message.startswith(f"{message_type}="):
-                return await handler(self, message[len(message_type) + 1 :])
+                received_data = message[len(message_type) + 1 :]
+                self.logger.debug(f"Received PACKET: {message_type}={received_data}")
+                return await handler(self, received_data)
 
     async def recv_loop(self):
         while not self.done:
@@ -79,7 +82,10 @@ class Peer(ABC):
 
                 await self.message_type_handler(message)
             except Exception as e:
-                self.logger.error(f"Error: {e}")
+                # traceback.print_exc()
+                self.logger.error(
+                    f"Error: {e}, {type(self)} {type(self.sub_socket)} {type(message)}, {type(self.sub_socket.recv_string)}"
+                )
 
     def setup(self):
         self._done = False

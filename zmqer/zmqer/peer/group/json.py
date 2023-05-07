@@ -7,7 +7,7 @@ from .group import GroupPeer
 
 class JsonPeer(GroupPeer):
     @staticmethod
-    def JSON_handler(peer: "JsonPeer", message: str):
+    async def JSON_handler(peer: "JsonPeer", message: str):
         """Parse json message"""
         # do something with the message as dict
         try:
