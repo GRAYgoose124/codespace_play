@@ -35,7 +35,7 @@ class Peer(ABC):
             handler.setLevel(log_level)
             handler.addFilter(logging.Filter(self.__class__.__name__))
             handler.setFormatter(
-                logging.Formatter("%(filename)s:%(lineno)d>\n\t%(message)s")
+                logging.Formatter("%(filename)s:%(lineno)d>\t%(message)s")
             )
             self.logger.addHandler(handler)
 
@@ -94,7 +94,6 @@ class Peer(ABC):
         while not self.done:
             try:
                 message = await self.sub_socket.recv_string()
-                self.logger.debug(f"{self.address}:\n\tReceived message: {message}")
 
                 await self.message_type_handler(message)
             except Exception as e:

@@ -3,17 +3,19 @@ import asyncio
 from ...peer import Peer
 
 
-STATUS_LENGTH = 100
-NEW_PEER_DAMAGE = STATUS_LENGTH // 10
-
-
 class GroupPeer(Peer):
+    TOTAL_HEALTH = 100
+    NEW_PEER_DAMAGE = 1
+
     def __init__(self, *args, group_broadcast_delay=5.0, **kwargs):
         # Group setup
         self.group = {}
+
         self.health = 0.0
-        self.join_statuses = STATUS_LENGTH * [True]
-        self.broadcast_statuses = STATUS_LENGTH * [True]
+        self.join_statuses = 0
+        self.broadcast_ratio = 1.0
+        self.broadcast_statuses = GroupPeer.TOTAL_HEALTH
+
         self.GROUP_BROADCAST_DELAY = group_broadcast_delay
 
         super().__init__(*args, **kwargs)
@@ -30,16 +32,18 @@ class GroupPeer(Peer):
         # Lets make a new peer hurt the population.
         if message == "True":
             peer.logger.debug(f"{peer.address}:\n\tNew peer joined")
-            message = [True] * NEW_PEER_DAMAGE
+            damage = -GroupPeer.NEW_PEER_DAMAGE
         if message == "False":
-            message = [False]
+            damage = 1
 
-        peer.join_statuses = message + peer.join_statuses
-        if len(peer.join_statuses) > STATUS_LENGTH:
-            peer.join_statuses = peer.join_statuses[:STATUS_LENGTH]
+        peer.join_statuses += damage
+        if peer.join_statuses < 0:
+            peer.join_statuses = 0
+        if peer.join_statuses > GroupPeer.TOTAL_HEALTH:
+            peer.join_statuses = GroupPeer.TOTAL_HEALTH
 
         # Health is maximized when all joins were false.
-        peer.health = peer.join_statuses.count(False) / STATUS_LENGTH
+        peer.health = peer.join_statuses / GroupPeer.TOTAL_HEALTH
         peer.logger.debug(
             f"{peer.address}:\n\tPopulation health: {peer.health}\t broadcast ratio: {peer.broadcast_ratio}"
         )
@@ -56,9 +60,9 @@ class GroupPeer(Peer):
         This will join and broadcast it's join status to the group.
         Theses statuses are used to determine the health of the population.
         """
-        peer.broadcast_statuses = [True] + peer.broadcast_statuses
-        if len(peer.broadcast_statuses) > STATUS_LENGTH:
-            peer.broadcast_statuses = peer.join_statuses[:STATUS_LENGTH]
+        peer.broadcast_statuses += 1
+        if peer.broadcast_statuses > GroupPeer.TOTAL_HEALTH:
+            peer.broadcast_statuses = GroupPeer.TOTAL_HEALTH
 
         # Parse peer list from message
         group = message.translate({ord(c): None for c in "[]' "}).split(",")
@@ -82,20 +86,20 @@ class GroupPeer(Peer):
     async def group_broadcast_stage(self):
         while not self.done:
             try:
-                self.broadcast_ratio = (
-                    self.broadcast_statuses.count(True) / STATUS_LENGTH
-                )
+                self.broadcast_ratio = self.broadcast_statuses / GroupPeer.TOTAL_HEALTH
                 if self.health < self.broadcast_ratio:
                     peers = self.peers
                     await self.broadcast("GROUP", peers)
                     self.logger.debug(
                         f"{self.address}:\n\tBroadcasted group: {peers}\n\t\t{self.broadcast_ratio=}"
                     )
-                    self.broadcast_statuses = [False] + self.broadcast_statuses
-                    if len(self.broadcast_statuses) > STATUS_LENGTH:
-                        self.broadcast_statuses = self.broadcast_statuses[
-                            :STATUS_LENGTH
-                        ]
+                    self.broadcast_statuses -= 1
+                    if self.broadcast_statuses < 0:
+                        self.broadcast_statuses = 0
+                elif self.health < 1.0:
+                    self.broadcast_statuses += GroupPeer.NEW_PEER_DAMAGE
+                    if self.broadcast_statuses > GroupPeer.TOTAL_HEALTH:
+                        self.broadcast_statuses = GroupPeer.TOTAL_HEALTH
 
                 await asyncio.sleep(self.GROUP_BROADCAST_DELAY)
             except Exception as e:

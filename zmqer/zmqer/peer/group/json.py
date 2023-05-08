@@ -60,7 +60,7 @@ class RandomNetSeparatedPeer(JsonPeer):
     def handle_work(self, data: dict[str, Any]):
         """Handle the workload"""
         self._counter += int(data["random"])
-        print(f"GOT THAT RANDOM GOODNESS: {RandomPeer._counter}")
+        print(f"GOT THAT RANDOM GOODNESS: {self._counter}")
 
     def workload(self) -> dict[str, Any]:
         """Produces a random workload"""
