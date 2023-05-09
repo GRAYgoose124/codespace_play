@@ -47,7 +47,7 @@ class RandomTaskablePeer(TaskablePeer):
     def ability(peer, data: dict[str, Any]):
         RandomTaskablePeer._counter += int(data["random"])
         print(
-            f"TaskablePeer ability called by {peer.address} on {data}\n\tResult: {RandomTaskablePeer._counter}"
+            f"{data['sender']} requested TaskablePeer.ability called by {peer.address} on {data}\n\tResult: {RandomTaskablePeer._counter}"
         )
 
     def __post_init__(self):

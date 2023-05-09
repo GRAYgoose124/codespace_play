@@ -11,6 +11,8 @@ from .json import JsonPeer
 
 
 class TaskablePeer(JsonPeer):
+    OLD_TASK_THRESHOLD = 30.0
+
     def __init__(self, *args, group_broadcast_delay=5, **kwargs):
         self.abilities = {}
         self.queue = []
@@ -25,55 +27,70 @@ class TaskablePeer(JsonPeer):
 
     def do_abilities(self, data: dict[str, Any]):
         """Complete tasks"""
-        if data["todo"] in self.abilities:
-            for handler in self.abilities[data["todo"]]:
-                handler(self, data)
-        else:
-            self.logger.error(f"Task {data['todo']} not registered")
+        todo_abilities = data["todo"].split(";")
 
-        data["is_complete"] = True
+        for ability in todo_abilities:
+            if data["todo"] in self.abilities:
+                for handler in self.abilities[ability]:
+                    handler(self, data)
+            else:
+                self.logger.error(f"Task {ability} not registered")
+
+        data["status"] = "complete"
         data["results"] = f"Task completed by {self.address}"
         self.logger.info(f"Task completed by {self.address}")
 
-    def queue_work(self, data: dict[str, Any]):
-        """Queue tasks"""
-        self.queue.append(data)
+        return data
+
+    def remove_from_queue(self, data: dict[str, Any]):
+        """Remove a task from the queue"""
+        # TODO: UUIDs
+        times = enumerate([task["time"] for task in self.queue])
+        for i, t in times:
+            if t == data["time"]:
+                ignored = self.queue.pop(i)
+                self.logger.debug(f"Removed task {ignored} from queue")
+                break
+
+    def handle_completed_task(self, data: dict[str, Any]):
+        """Handle a completed task"""
+        if data["sender"] == self.address:
+            self.logger.debug(f"Got my completed task back: {data}")
+        self.remove_from_queue(data)
 
     def handle_work(self, data: dict[str, Any]):
         """Handle the workload"""
         # Ignore self-broadcasts
-        if data["sender"] == self.address:
+        if data["sender"] == self.address and data["priority"] != self.address:
             return
 
-        self.logger.debug(f"Got work ({data})")
+        # Check if the task is a completed one
+        if data["status"] == "complete":
+            return self.handle_completed_task(data)
 
-        # Check if the task is in the queue
-        # TODO: UUIDs
-        if data["is_complete"]:
-            if data["time"] in [task["time"] for task in self.queue]:
-                self.queue.remove(data)
-        elif data["priority"] != self.address and not data["time"] < time.time() - 10.0:
-            # Complete old tasks not completed by the priority peer
-            self.do_abilities(data)
-            return
-
-        # Ignore any complete work that isn't for this peer
-        if data["is_complete"] and data["priority"] != self.address:
-            return
-
+        # Complete old tasks not completed by the priority peer
+        if (
+            data["status"] == "pending"
+            and data["time"] < time.time() - TaskablePeer.OLD_TASK_THRESHOLD
+        ):
+            data = self.do_abilities(data)
         # If a priority address is given, then that address is the only one that can complete the task.
         # Otherwise, any peer can complete the task.
-        if data["priority"] is None or data["priority"] == self.address:
-            self.do_abilities(data)
+        elif data["priority"] is None or data["priority"] == self.address:
+            data = self.do_abilities(data)
         else:
-            # If the task is not complete, then add it to the queue and wait to see if the priority peer completes it.
-            pass
+            data["status"] = "pending"
+
+        self.logger.debug(f"Did work, results:({data}) at {self.address}")
 
         # Queue the task if it's not complete
-        if not data["is_complete"]:
-            self.queue_tasks(data)
-        else:
+        if data["status"] == "pending":
+            self.queue.append(data)
+        # Check if the complete task is in the queue and remove it if it is.
+        elif data["status"] == "complete":
+            self.remove_from_queue(data)
             return data
+
         # broadcast the results
         # await self.broadcast("COMPLETE", json.dumps(data))
 
@@ -95,7 +112,7 @@ class TaskablePeer(JsonPeer):
                     "sender": self.address,
                     "priority": peer,  # or None, if not given any Peer can complete the task and broadcast the results.
                     "todo": None,
-                    "is_complete": False,
+                    "status": False,
                     "results": None,
                 }
             )
