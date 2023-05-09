@@ -16,24 +16,14 @@ class TaskablePeer(JsonPeer):
         self.queue = []
         super().__init__(*args, group_broadcast_delay=group_broadcast_delay, **kwargs)
 
-    @staticmethod
-    def ability(peer, data: dict[str, Any]):
-        print(f"TaskablePeer ability called by {peer.address}")
-        data["is_complete"] = False
-        data["results"] = f"Task queued by {peer.address}"
-
-    def __post_init__(self):
-        super().__post_init__()
-        self.register_task("taskable", self.ability)
-
-    def register_task(self, task: str, handler, overwrite=False):
+    def register_ability(self, task: str, handler, overwrite=False):
         """Register a task"""
         if task not in self.abilities or overwrite:
             self.abilities[task] = [handler]
         else:
             self.abilities[task].append(handler)
 
-    def complete_tasks(self, data: dict[str, Any]):
+    def do_abilities(self, data: dict[str, Any]):
         """Complete tasks"""
         if data["todo"] in self.abilities:
             for handler in self.abilities[data["todo"]]:
@@ -45,7 +35,7 @@ class TaskablePeer(JsonPeer):
         data["results"] = f"Task completed by {self.address}"
         self.logger.info(f"Task completed by {self.address}")
 
-    def queue_tasks(self, data: dict[str, Any]):
+    def queue_work(self, data: dict[str, Any]):
         """Queue tasks"""
         self.queue.append(data)
 
@@ -64,7 +54,7 @@ class TaskablePeer(JsonPeer):
                 self.queue.remove(data)
         elif data["priority"] != self.address and not data["time"] < time.time() - 10.0:
             # Complete old tasks not completed by the priority peer
-            self.complete_tasks(data)
+            self.do_abilities(data)
             return
 
         # Ignore any complete work that isn't for this peer
@@ -74,7 +64,7 @@ class TaskablePeer(JsonPeer):
         # If a priority address is given, then that address is the only one that can complete the task.
         # Otherwise, any peer can complete the task.
         if data["priority"] is None or data["priority"] == self.address:
-            self.complete_tasks(data)
+            self.do_abilities(data)
         else:
             # If the task is not complete, then add it to the queue and wait to see if the priority peer completes it.
             pass
@@ -82,7 +72,8 @@ class TaskablePeer(JsonPeer):
         # Queue the task if it's not complete
         if not data["is_complete"]:
             self.queue_tasks(data)
-
+        else:
+            return data
         # broadcast the results
         # await self.broadcast("COMPLETE", json.dumps(data))
 
@@ -103,7 +94,7 @@ class TaskablePeer(JsonPeer):
                 {
                     "sender": self.address,
                     "priority": peer,  # or None, if not given any Peer can complete the task and broadcast the results.
-                    "todo": "taskable",
+                    "todo": None,
                     "is_complete": False,
                     "results": None,
                 }

@@ -16,7 +16,9 @@ class JsonPeer(WorkloadPeer, metaclass=ABCMeta):
         try:
             data = json.loads(workload)
 
-            return peer.handle_work(data)
+            results = peer.handle_work(data)
+            if results is not None:
+                await peer.broadcast("JSON", json.dumps(results))
 
         except json.JSONDecodeError as e:
             peer.logger.error(f"Error: {e}")

@@ -1,6 +1,8 @@
 from random import randint
 from typing import Any
+
 from .json import JsonPeer
+from .taskable import TaskablePeer
 
 
 class RandomPeer(JsonPeer):
@@ -34,5 +36,28 @@ class RandomNetSeparatedPeer(JsonPeer):
         """Produces a random workload"""
         data = super().workload()
         data.update({"random": randint(1, 100)})
+
+        return data
+
+
+class RandomTaskablePeer(TaskablePeer):
+    _counter = 0
+
+    @staticmethod
+    def ability(peer, data: dict[str, Any]):
+        RandomTaskablePeer._counter += int(data["random"])
+        print(
+            f"TaskablePeer ability called by {peer.address} on {data}\n\tResult: {RandomTaskablePeer._counter}"
+        )
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.register_ability("print_ability", self.ability)
+
+    def workload(self) -> dict[str, Any]:
+        data = super().workload()
+        data.update({"random": randint(1, 100)})
+
+        data["todo"] = "print_ability"
 
         return data
