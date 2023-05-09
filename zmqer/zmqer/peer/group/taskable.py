@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import asyncio
 import json
 from random import randint
@@ -38,7 +39,7 @@ class TaskablePeer(JsonPeer):
 
         data["status"] = "complete"
         data["results"] = f"Task completed by {self.address}"
-        self.logger.info(f"Task completed by {self.address}")
+        self.logger.debug(f"Task completed by {self.address}")
 
         return data
 
@@ -52,44 +53,56 @@ class TaskablePeer(JsonPeer):
                 self.logger.debug(f"Removed task {ignored} from queue")
                 break
 
+    def append_to_queue(self, data: dict[str, Any]):
+        """Append a task to the queue"""
+        # if it's not already in the queue
+        times = enumerate([task["time"] for task in self.queue])
+        for i, t in times:
+            if t == data["time"]:
+                return
+
+        self.queue.append(data)
+
+    @abstractmethod
     def handle_completed_task(self, data: dict[str, Any]):
         """Handle a completed task"""
-        if data["sender"] == self.address:
-            self.logger.debug(f"Got my completed task back: {data}")
-        self.remove_from_queue(data)
+        pass
 
     def handle_work(self, data: dict[str, Any]):
         """Handle the workload"""
         # Ignore self-broadcasts
-        if data["sender"] == self.address and data["priority"] != self.address:
+        if (
+            data["sender"] == self.address
+            and data["priority"] != self.address
+            and data["status"] != "complete"
+        ):
             return
 
-        # Check if the task is a completed one
-        if data["status"] == "complete":
-            return self.handle_completed_task(data)
-
         # Complete old tasks not completed by the priority peer
-        if (
-            data["status"] == "pending"
-            and data["time"] < time.time() - TaskablePeer.OLD_TASK_THRESHOLD
-        ):
-            data = self.do_abilities(data)
-        # If a priority address is given, then that address is the only one that can complete the task.
-        # Otherwise, any peer can complete the task.
-        elif data["priority"] is None or data["priority"] == self.address:
-            data = self.do_abilities(data)
-        else:
-            data["status"] = "pending"
+        if data["status"] != "complete":
+            if (
+                data["status"] == "pending"
+                and data["time"] < time.time() - TaskablePeer.OLD_TASK_THRESHOLD
+            ):
+                data = self.do_abilities(data)
+            # If a priority address is given, then that address is the only one that can complete the task.
+            # Otherwise, any peer can complete the task.
+            elif data["priority"] is None or data["priority"] == self.address:
+                data = self.do_abilities(data)
+            else:
+                data["status"] = "pending"
+                self.append_to_queue(data)
 
-        self.logger.debug(f"Did work, results:({data}) at {self.address}")
-
-        # Queue the task if it's not complete
-        if data["status"] == "pending":
-            self.queue.append(data)
-        # Check if the complete task is in the queue and remove it if it is.
-        elif data["status"] == "complete":
+        if data["status"] == "complete":
             self.remove_from_queue(data)
-            return data
+
+            if data["sender"] == self.address:
+                return self.handle_completed_task(data)
+            else:
+                # TODO: SENDER NEEDS TO ACKNOWLEDGE THE COMPLETION
+                # This is a rebroadcast to bounce the results back to the sender.
+                # We need to invalidate this bounce when the sender receives the results.
+                return data
 
         # broadcast the results
         # await self.broadcast("COMPLETE", json.dumps(data))

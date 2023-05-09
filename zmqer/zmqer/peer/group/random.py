@@ -47,12 +47,15 @@ class RandomTaskablePeer(TaskablePeer):
     def ability(peer, data: dict[str, Any]):
         RandomTaskablePeer._counter += int(data["random"])
         print(
-            f"{data['sender']} requested TaskablePeer.ability called by {peer.address} on {data}\n\tResult: {RandomTaskablePeer._counter}"
+            f"{data['sender']} requested TaskablePeer.ability completed by {peer.address} on {data}\n\tResult: {RandomTaskablePeer._counter}"
         )
 
     def __post_init__(self):
         super().__post_init__()
         self.register_ability("print_ability", self.ability)
+
+    def handle_completed_task(self, data: dict[str, Any]):
+        print(f"Got my completed task back: {data}")
 
     def workload(self) -> dict[str, Any]:
         data = super().workload()
