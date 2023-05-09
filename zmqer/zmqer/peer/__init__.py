@@ -1,5 +1,5 @@
 from .__main__ import Peer
 
-from .group import GroupPeer, JsonPeer, RandomPeer
+from .group import __all__ as group_all
 
-__all__ = ["Peer", "GroupPeer", "JsonPeer", "RandomPeer"]
+__all__ = ["Peer", *group_all]

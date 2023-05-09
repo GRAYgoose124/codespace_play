@@ -1,5 +1,14 @@
 from .__main__ import GroupPeer
 from .workload import WorkloadPeer
-from .json import JsonPeer, RandomPeer
+from .json import JsonPeer
+from .random import RandomPeer, RandomNetSeparatedPeer
+from .taskable import TaskablePeer
 
-__all__ = ["GroupPeer", "WorkloadPeer", "JsonPeer", "RandomPeer"]
+__all__ = [
+    "GroupPeer",
+    "WorkloadPeer",
+    "JsonPeer",
+    "RandomPeer",
+    "RandomNetSeparatedPeer",
+    "TaskablePeer",
+]

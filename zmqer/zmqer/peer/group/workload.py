@@ -1,11 +1,11 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABCMeta
 import json
 from typing import Any
 
 from . import GroupPeer
 
 
-class WorkloadPeer(GroupPeer):
+class WorkloadPeer(GroupPeer, metaclass=ABCMeta):
     def register_message_type(self, message_type, handler, overwrite=False):
         self.__workload_type = message_type
         return super().register_message_type(message_type, handler, overwrite)
@@ -24,6 +24,7 @@ class WorkloadPeer(GroupPeer):
         """Broadcast the workload"""
         while not self.done:
             try:
+                # TODO: multiple workloads so we can register and run awaitables
                 data = await getattr(self, "workload_wrapper")()
                 await self.broadcast(self.__workload_type, data)
             except Exception as e:

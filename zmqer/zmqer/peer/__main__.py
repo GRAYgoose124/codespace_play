@@ -1,9 +1,7 @@
 from abc import ABC, abstractmethod
 import zmq.asyncio
-import os
 import asyncio
 import logging
-import traceback
 
 
 class Peer(ABC):
