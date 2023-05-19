@@ -97,3 +97,22 @@ class TestBasic(unittest.TestCase):
             roshei_tevot_sum == 22
         ), f"sum of roshei tevot of first 7 words of Genesis is {roshei_tevot_sum}, should be 22"
         print("All test gematrias are correct!")
+
+    def test_verse_slice(self):
+        torah_data = BookData(books="Torah")
+
+        tests = [
+            (2, 6),
+            (None, 6),
+            (2, None),
+        ]
+
+        for start, end in tests:
+            if start is None:
+                start = 0
+            if end is None:
+                end = len(torah_data)
+
+            assert (
+                len([print(e) for e in torah_data[start:end]]) == end - start
+            ), f"Slice failed: [{start}:{end}] length not {end - start}"

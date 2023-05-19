@@ -8,8 +8,8 @@ def main():
     # tanach_data = BookData()
     # l = tanach_data.to_hebrew_string().text_only().length
 
-    [print(e) for e in torah_data[2:6]]
-    # dump tanach data to json well formatted
+    start, end = (2, 6)
+    [print(e) for e in torah_data[start:end]]
 
 
 if __name__ == "__main__":

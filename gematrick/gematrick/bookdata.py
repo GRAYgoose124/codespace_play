@@ -8,39 +8,58 @@ import json
 from gematrick.books import TORAH, NEVIIM, KETUVIM, TANACH
 
 
-class VerseSlice:
-    def __init__(self, data):
-        self.data = data
-        self.frame = data
+class FrameSlice:
+    def __init__(self, iter_method):
+        self.iter_method = iter_method
+        self.iter_instance = None
+
+        self.__iter__()
 
     def __iter__(self):
-        self.frame = self.data
+        self.iter_instance = self.iter_method()
         return self
 
     def __next__(self):
-        return next(self.frame)
+        if self.iter_instance is None:
+            raise StopIteration
+
+        next_value = next(self.iter_instance)
+
+        return next_value
 
     def __getitem__(self, item):
         data = []
+
         if isinstance(item, slice):
-            start = item.start
+            start = item.start or 0
             while start > 0:
-                next(self)
+                print("Skipping...")
+                self.__next__()
                 start -= 1
 
-            stop = item.stop
-            while stop > 0:
-                verse = next(self)
-                words = [e[0] for e in verse]
-                data.append(words)
-                stop -= 1
+            stop = item.stop - item.start if item.stop else None
+            if stop is not None:  # if end of slice is specified
+                while stop > 0:
+                    verse = self.__next__()
+                    words = [e[0] for e in verse]
+                    data.append(words)
+                    stop -= 1
+            else:  # if end of slice is not specified, continue till the end
+                try:
+                    while True:
+                        verse = self.__next__()
+                        words = [e[0] for e in verse]
+                        data.append(words)
+                except StopIteration:
+                    pass
 
             return data
+
         else:
             while item > 0:
-                next(self)
+                self.__next__()
                 item -= 1
-            return next(self)
+            return self.__next__()
 
 
 class BookData:
@@ -89,8 +108,10 @@ class BookData:
             for verse in chapter:
                 yield verse
 
+        yield None
+
     def __getitem__(self, item):
-        return VerseSlice(self.verses())[item]
+        return FrameSlice(self.verses)[item]
 
     def words(self):
         for verse in self.verses():
