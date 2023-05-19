@@ -8,6 +8,41 @@ import json
 from gematrick.books import TORAH, NEVIIM, KETUVIM, TANACH
 
 
+class VerseSlice:
+    def __init__(self, data):
+        self.data = data
+        self.frame = data
+
+    def __iter__(self):
+        self.frame = self.data
+        return self
+
+    def __next__(self):
+        return next(self.frame)
+
+    def __getitem__(self, item):
+        data = []
+        if isinstance(item, slice):
+            start = item.start
+            while start > 0:
+                next(self)
+                start -= 1
+
+            stop = item.stop
+            while stop > 0:
+                verse = next(self)
+                words = [e[0] for e in verse]
+                data.append(words)
+                stop -= 1
+
+            return data
+        else:
+            while item > 0:
+                next(self)
+                item -= 1
+            return next(self)
+
+
 class BookData:
     def __init__(self, books="tanach"):
         self.data = None
@@ -54,12 +89,8 @@ class BookData:
             for verse in chapter:
                 yield verse
 
-    @property
-    def verse_slices(self):
-        """Return a generator of verse slices, where each slice is a list of words in the verse."""
-        for verse in self.verses():
-            v = [word[0] for word in verse]
-            yield v
+    def __getitem__(self, item):
+        return VerseSlice(self.verses())[item]
 
     def words(self):
         for verse in self.verses():

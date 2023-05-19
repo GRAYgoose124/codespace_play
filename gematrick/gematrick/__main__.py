@@ -8,7 +8,7 @@ def main():
     # tanach_data = BookData()
     # l = tanach_data.to_hebrew_string().text_only().length
 
-    print(torah_data.verse_slices[0:5])
+    [print(e) for e in torah_data[2:6]]
     # dump tanach data to json well formatted
 
 
