@@ -1,3 +1,3 @@
-from .__main__ import BookData
+from .bookdata import BookData
 
 __all__ = ["BookData"]
