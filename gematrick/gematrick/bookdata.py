@@ -66,6 +66,7 @@ class BookData:
     def __init__(self, books="tanach"):
         self.data = None
         self.books = None
+        self.__letters = None
 
         self.data_path = Path(__file__).parent / "data"
 
@@ -118,7 +119,8 @@ class BookData:
                 for verse in chapter:
                     for word in verse:
                         for letter in word[0]:
-                            self.__letters.append(letter)
+                            if letter != "/":
+                                self.__letters.append(letter)
         return self.__letters
 
     def letter(self, index):
