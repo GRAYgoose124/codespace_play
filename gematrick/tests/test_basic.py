@@ -12,7 +12,8 @@ special_words = {
     "el": (Hebrew("אל"), 31),
     "israel": (Hebrew("ישראל"), 541),
     "moses": (Hebrew("משה"), 345),
-    "adan": (Hebrew("אדם"), 45),
+    "adam": (Hebrew("אדם"), 45),
+    "babel": (Hebrew("בבל"), 34),
 }
 
 

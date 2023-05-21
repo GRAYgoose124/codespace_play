@@ -99,6 +99,31 @@ class BookData:
             for book in self.books:
                 self.data.extend(data[book])
 
+    def chapter(self, chapter_number):
+        return self.data[chapter_number - 1]
+
+    def verse_by_ref(self, chapter_number, verse_number, pretty=True):
+        if pretty:
+            return " ".join(
+                [e[0] for e in self.chapter(chapter_number)[verse_number - 1]]
+            )
+        else:
+            return self.chapter(chapter_number)[verse_number - 1]
+
+    @property
+    def letters(self):
+        if self.__letters is None:
+            self.__letters = []
+            for chapter in self.data:
+                for verse in chapter:
+                    for word in verse:
+                        for letter in word[0]:
+                            self.__letters.append(letter)
+        return self.__letters
+
+    def letter(self, index):
+        return self.letters[index]
+
     def chapters(self):
         for chapter in self.data:
             yield chapter
@@ -107,8 +132,6 @@ class BookData:
         for chapter in self.chapters():
             for verse in chapter:
                 yield verse
-
-        yield None
 
     def __getitem__(self, item):
         return FrameSlice(self.verses)[item]
@@ -126,6 +149,14 @@ class BookData:
         """Not efficient, use BookData.to_hebrew_string() instead."""
         for word in self.just_words():
             yield Hebrew(word)
+
+    def get_all_word_indices(self, word: Hebrew) -> list[int]:
+        indices = []
+        for i, w in enumerate(self.just_words()):
+            if word in w:
+                indices.append(i)
+
+        return indices
 
     @functools.lru_cache()
     def to_hebrew_string(self):
