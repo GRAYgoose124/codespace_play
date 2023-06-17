@@ -108,6 +108,9 @@ class TaskablePeer(JsonPeer):
         # await self.broadcast("COMPLETE", json.dumps(data))
 
     async def workload_wrapper(self) -> str:
+        # Let it be known that this sleep is kinda freaking important.
+        # We need some sort of async load balancing between processing requests and working on tasks.
+        # Without this sleep, suffice to say the peer will become completely unresponsive while working on a series of tasks.
         await asyncio.sleep(random.uniform(0.5, 1))
         return await super().workload_wrapper()
 
