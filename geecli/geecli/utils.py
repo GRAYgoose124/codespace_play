@@ -1,5 +1,23 @@
-from pathlib import Path
 import logging
+import argparse
+from pathlib import Path
+
+
+class ExitSignal(Exception):
+    pass
+
+
+def argparser():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "--context_file",
+        type=str,
+        default="context.yaml",
+        help="The file to use for saving and loading.",
+    )
+
+    return parser
 
 
 def init_logger(

@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+from pathlib import Path
 import traceback
 import openai
 
@@ -25,18 +26,48 @@ def init_openai():
 
 @dataclass
 class PromptContext(YAMLWizard):
+    title: str = "Conversation"
     model: str = "gpt-3.5-turbo"
     max_tokens: int = 8000
 
     messages: list[dict[str, str]] = field(default_factory=list)
     total_tokens_used: int = 0
 
+    save_path: str = field(default=".")
+
     # api_history: list[dict] = field(default_factory=list)
 
     def __post_init__(self):
+        self._saved_file = None
         self.logger = init_logger(
             name=self.__class__.__name__, parent="geecli", level=logging.INFO
         )
+
+    @staticmethod
+    def load(filename: Path) -> "PromptContext":
+        ctx = PromptContext.from_yaml_file(filename)
+        ctx._saved_file = filename
+        ctx.save_path = str(filename.parent)
+        ctx.logger.info(f"Loaded context from {filename}")
+
+        return ctx
+
+    def save(self, filename: Path = None) -> Path:
+        if filename is not None:
+            self._saved_file = filename
+
+        if self._saved_file is None:
+            self._saved_file = (
+                Path(self.save_path) / f"{self.title}-{datetime.datetime.now()}"
+            ).with_suffix(".yaml")
+
+        if self._saved_file.exists():
+            self.logger.info(f"Overwriting {self.save_path}")
+
+        self.to_yaml_file(self._saved_file)
+        self.logger.info(f"Saved context to {self._saved_file}")
+
+        return self._saved_file
 
     def add_message(
         self, role: Literal["system", "user", "assistant"], content: str
@@ -80,7 +111,7 @@ class PromptContext(YAMLWizard):
         self.add_message("user", new_message)
 
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo", messages=self.messages
+            model=self.model, messages=self.messages
         )
 
         message = response.choices[0].message.to_dict()
@@ -93,59 +124,6 @@ class PromptContext(YAMLWizard):
         self.messages.append(message)
 
         return response
-
-    def interactive(self) -> None:
-        while True:
-            new_message = input("You: ")
-
-            if len(new_message) == 0:
-                continue
-
-            if new_message[0] == "/":
-                match new_message[1:]:
-                    case "exit":
-                        return
-                    case "tokens":
-                        print(f"Total tokens used: {self.total_tokens_used}")
-                        pass
-                    case "cost":
-                        self.logger.debug(
-                            f"Prompting with "
-                            "\n".join([m["content"] for m in self.messages])
-                        )
-                        print(f"You will spend {self.total_tokens_used} tokens.")
-                        pass
-                    case "messages":
-                        print("\n".join([m["content"] for m in self.messages]))
-                    case "clear":
-                        q = input(
-                            "THIS IS A VERY DESTRUCTIVE ACTION, ARE YOU SURE? (y/N)"
-                        )
-                        if q.lower() == "y":
-                            # backup
-                            date = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-                            self.to_yaml_file(f"backup-{date}.yaml")
-                            self.clear_messages()
-                            print("Prompt messages cleared, fresh working space ready.")
-                    case "open":
-                        files = os.listdir(os.getcwd())
-                        for i, yaml in enumerate(files):
-                            if yaml.endswith(".yaml"):
-                                name_only = yaml.split(".")[0]
-                                print(f"{i}: {name_only}")
-                        index = int(input("Which file to open? "))
-                        self.from_yaml_file(files[index])
-
-                continue
-
-            try:
-                response = self.prompt(new_message)
-            except Exception as e:
-                self.logger.error("Error during prompting:", e)
-                traceback.print_exc()
-                continue
-
-            print(f"{self.model}: ", response["choices"][0]["message"]["content"])
 
     def __repr__(self) -> str:
         return f"<PromptContext model={self.model} messages={len(self.messages)}>"
