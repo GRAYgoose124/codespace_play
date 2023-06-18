@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 import traceback
@@ -121,7 +122,19 @@ class PromptContext(YAMLWizard):
                             "THIS IS A VERY DESTRUCTIVE ACTION, ARE YOU SURE? (y/N)"
                         )
                         if q.lower() == "y":
+                            # backup
+                            date = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+                            self.to_yaml_file(f"backup-{date}.yaml")
                             self.clear_messages()
+                            print("Prompt messages cleared, fresh working space ready.")
+                    case "open":
+                        files = os.listdir(os.getcwd())
+                        for i, yaml in enumerate(files):
+                            if yaml.endswith(".yaml"):
+                                name_only = yaml.split(".")[0]
+                                print(f"{i}: {name_only}")
+                        index = int(input("Which file to open? "))
+                        self.from_yaml_file(files[index])
 
                 continue
 
