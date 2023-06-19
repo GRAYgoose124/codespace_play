@@ -28,10 +28,11 @@ def init_openai():
 class PromptContext(YAMLWizard):
     title: str = "Conversation"
     model: str = "gpt-3.5-turbo"
-    max_tokens: int = 250
-    token_limit: int = 10000
+    max_tokens: int = 750
+    token_limit: int = 100000
 
-    add_system_to_prompt: bool = False
+    user_prompts_only: bool = False
+    max_prompt_length: int = 100
     messages: list[dict[str, str]] = field(default_factory=list)
     total_tokens_used: int = 0
 
@@ -111,12 +112,12 @@ class PromptContext(YAMLWizard):
 
     @property
     def messages_to_prompt(self) -> list[dict[str, str]]:
-        if not self.add_system_to_prompt:
+        if self.user_prompts_only:
             messages = self.get_messages_by_role("user")
         else:
             messages = self.messages
 
-        return messages
+        return messages[-self.max_prompt_length :]
 
     def prompt(self, new_message) -> dict:
         if self.total_tokens_used >= self.token_limit:
@@ -137,7 +138,6 @@ class PromptContext(YAMLWizard):
 
         self.total_tokens_used += response.usage.total_tokens
 
-        # self.api_history.append(response)
         self.messages.append(message)
 
         return response
@@ -146,9 +146,7 @@ class PromptContext(YAMLWizard):
         return f"<PromptContext model={self.model} messages={len(self.messages)}>"
 
     def __str__(self) -> str:
-        return f"{self.get_used_tokens()=}\nMessaging with {self.model}:\n" + "\n".join(
-            [
-                f"{m['choices'][0]['message']['role']}: {m['choices'][0]['message']['content']}"
-                for m in self.api_history
-            ]
+        return (
+            f"{self.user_prompts_only=}, {self.total_tokens_used=}\nMessaging with {self.model}:\n"
+            + "\n".join([f"{m['role']}: {m['content']}" for m in self.messages])
         )

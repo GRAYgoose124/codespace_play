@@ -20,11 +20,11 @@ def demo_cmd2(a, b):
 
 
 class CLI:
-    def __init__(self, command_char="/", prompt_str="> "):
+    def __init__(self, command_prefix="/", prompt_str="> "):
         if "readline" not in sys.modules:
             import readline
 
-        self.command_char = command_char
+        self.command_prefix = command_prefix
         self.prompt_str = prompt_str
 
         self._commands = {}
@@ -71,8 +71,8 @@ class CLI:
                     self.set_unknown_handler(func)
 
     def run(self, command) -> bool:
-        if self.command_char is None or command.startswith(self.command_char):
-            if self.command_char is not None:
+        if self.command_prefix is None or command.startswith(self.command_prefix):
+            if self.command_prefix is not None:
                 command = command[1:]
 
             if command in self._commands:

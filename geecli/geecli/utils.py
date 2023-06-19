@@ -34,8 +34,15 @@ def init_logger(
         logger = logging.getLogger(parent).getChild(name)
 
     logger.setLevel(level)
-    fh = logging.FileHandler(root_dir / f"{level}-{name}.log")
-    fh.setLevel(level)
-    logger.addHandler(fh)
+
+    # if parent lets use the same file handler
+    if parent is not None:
+        for handler in logger.parent.handlers:
+            if isinstance(handler, logging.FileHandler):
+                logger.addHandler(handler)
+    else:
+        fh = logging.FileHandler(root_dir / f"{level}-{name}.log")
+        fh.setLevel(level)
+        logger.addHandler(fh)
 
     return logger

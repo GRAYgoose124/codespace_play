@@ -19,9 +19,15 @@ logger = None
 def interactive_loop(ctx: PromptContext) -> None:
     class GeeCLI(CLI):
         @CLI.command
+        def prepend_prompt():
+            ctx.prepend_prompt()
+            print("Prompt prepended.")
+
+        @CLI.command
         def contx():
             for k, v in ctx.__dict__.items():
                 print(f"{k}: {v}")
+            print(ctx)
 
         @CLI.command
         def tokens():
@@ -34,8 +40,9 @@ def interactive_loop(ctx: PromptContext) -> None:
                 f"Prompting with "
                 "\n".join([m["content"] for m in ctx.messages_to_prompt])
             )
+            min_cost = sum(len(m["content"]) for m in ctx.messages_to_prompt)
             print(
-                f"You have spent {ctx.total_tokens_used} tokens. You will spend an average of {len(ctx.messages_to_prompt) / 4} tokens next prompting."
+                f"You have spent {ctx.total_tokens_used} tokens. You will spend a minimum of {min_cost} tokens next prompting."
             )
             pass
 
@@ -84,7 +91,7 @@ def interactive_loop(ctx: PromptContext) -> None:
                 ctx.logger.error("Error during prompting:", e)
                 traceback.print_exc()
 
-    cli = GeeCLI()
+    cli = GeeCLI(command_prefix="!")
     cli.loop()
 
 
@@ -137,12 +144,12 @@ def main():
         exit_code = 1
     finally:
         if len(context.messages) > 0:
+            path = context.save()
+
             # unmark other active files
             for f in data_dir.iterdir():
-                if ".active." in f.name:
+                if ".active." in f.name and f != path:
                     f.rename(f.with_name(f.name.replace(".active.", ".")))
-
-            path = context.save()
 
             # mark active file
             if not path.name.endswith(".active.yaml"):
