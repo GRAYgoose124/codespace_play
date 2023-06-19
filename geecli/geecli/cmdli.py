@@ -1,3 +1,4 @@
+import inspect
 import sys
 
 
@@ -33,7 +34,6 @@ class CLI:
         self._unknown_handler = None
         self._not_slash_handler = None
 
-        self.add_command("help", self.help)
         self.register_commands()
 
         self.__post_init__()
@@ -45,6 +45,14 @@ class CLI:
     def command(func):
         """decorator for marking method as a command"""
         func.is_command = True
+
+        # check if first function parameter is self
+        sig = inspect.signature(func)
+        parameters = sig.parameters
+        if len(parameters) > 0:
+            if list(parameters.keys())[0] == "self":
+                return func
+
         return staticmethod(func)
 
     @staticmethod
@@ -62,6 +70,7 @@ class CLI:
     def register_commands(self):
         for name in dir(self):
             func = getattr(self, name)
+
             if callable(func):
                 if hasattr(func, "is_command") and func.is_command:
                     self.add_command(name, func)
@@ -124,11 +133,17 @@ class CLI:
     def add_commands(self, commands: dict):
         self._commands.update(commands)
 
+    @command
     def help(self):
         """Print help for all commands"""
         print("Available commands:")
         for name, func in self._commands.items():
             print(f"{name}: {func.__doc__}")
+
+    @command
+    def exit():
+        """Exit the CLI"""
+        raise CMDExit
 
 
 def main():
