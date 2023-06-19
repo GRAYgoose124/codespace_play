@@ -17,79 +17,83 @@ logger = None
 
 
 def interactive_loop(ctx: PromptContext) -> None:
-    cli = CLI()
+    class GeeCLI(CLI):
+        @staticmethod
+        @CLI.command
+        def contx():
+            for k, v in ctx.__dict__.items():
+                print(f"{k}: {v}")
 
-    def contx():
-        for k, v in ctx.__dict__.items():
-            print(f"{k}: {v}")
+        @staticmethod
+        @CLI.command
+        def tokens():
+            print(f"Total tokens used: {ctx.total_tokens_used}")
+            pass
 
-    def tokens():
-        print(f"Total tokens used: {ctx.total_tokens_used}")
-        pass
+        @staticmethod
+        @CLI.command
+        def cost():
+            ctx.logger.debug(
+                f"Prompting with "
+                "\n".join([m["content"] for m in ctx.messages_to_prompt])
+            )
+            print(
+                f"You have spent {ctx.total_tokens_used} tokens. You will spend an average of {len(ctx.messages_to_prompt) / 4} tokens next prompting."
+            )
+            pass
 
-    def cost():
-        ctx.logger.debug(
-            f"Prompting with " "\n".join([m["content"] for m in ctx.messages_to_prompt])
-        )
-        print(
-            f"You have spent {ctx.total_tokens_used} tokens. You will spend an average of {len(ctx.messages_to_prompt) / 4} tokens next prompting."
-        )
-        pass
+        @staticmethod
+        @CLI.command
+        def messages():
+            print("\n".join([m["content"] for m in ctx.messages]))
 
-    def messages():
-        print("\n".join([m["content"] for m in ctx.messages]))
+        @staticmethod
+        @CLI.command
+        def clear():
+            q = input("THIS IS A VERY DESTRUCTIVE ACTION, ARE YOU SURE? (y/N)")
+            if q.lower() == "y":
+                # backup
+                date = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+                ctx.to_yaml_file(f"backup-{date}.yaml")
+                ctx.clear_messages()
+                print("Prompt messages cleared, fresh working space ready.")
 
-    def clear():
-        q = input("THIS IS A VERY DESTRUCTIVE ACTION, ARE YOU SURE? (y/N)")
-        if q.lower() == "y":
-            # backup
-            date = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-            ctx.to_yaml_file(f"backup-{date}.yaml")
-            ctx.clear_messages()
-            print("Prompt messages cleared, fresh working space ready.")
+        @staticmethod
+        @CLI.command
+        def open():
+            files = os.listdir(os.getcwd())
+            for i, yaml in enumerate(files):
+                if yaml.endswith(".yaml"):
+                    name_only = yaml.split(".")[0]
+                    print(f"{i}: {name_only}")
+            index = int(input("Which file to open? "))
+            ctx.from_yaml_file(files[index])
+            print(f"Loaded {files[index]}")
 
-    def open():
-        files = os.listdir(os.getcwd())
-        for i, yaml in enumerate(files):
-            if yaml.endswith(".yaml"):
-                name_only = yaml.split(".")[0]
-                print(f"{i}: {name_only}")
-        index = int(input("Which file to open? "))
-        ctx.from_yaml_file(files[index])
-        print(f"Loaded {files[index]}")
+        @staticmethod
+        @CLI.command
+        def save():
+            name = input("Name of the file? ")
+            ctx.to_yaml_file(name)
 
-    def save():
-        name = input("Name of the file? ")
-        ctx.to_yaml_file(name)
+        @staticmethod
+        @CLI.command
+        def binman():
+            print("Welcome to BinManager!")
+            with BinManager(ctx.save_path) as bm:
+                bm.interactive_loop()
 
-    def binman():
-        print("Welcome to BinManager!")
-        with BinManager(ctx.save_path) as bm:
-            bm.interactive_loop()
+        @staticmethod
+        @CLI.not_slash
+        def prompt_handler(new_message: str):
+            try:
+                response = ctx.prompt(new_message)
+                print(f"{ctx.model}: ", response["choices"][0]["message"]["content"])
+            except Exception as e:
+                ctx.logger.error("Error during prompting:", e)
+                traceback.print_exc()
 
-    cli.add_commands(
-        {
-            "contx": contx,
-            "tokens": tokens,
-            "cost": cost,
-            "messages": messages,
-            "clear": clear,
-            "open": open,
-            "save": save,
-            "binman": binman,
-        }
-    )
-
-    def prompt_handler(new_message: str):
-        try:
-            response = ctx.prompt(new_message)
-            print(f"{ctx.model}: ", response["choices"][0]["message"]["content"])
-        except Exception as e:
-            ctx.logger.error("Error during prompting:", e)
-            traceback.print_exc()
-
-    cli.set_not_slash_handler(prompt_handler)
-
+    cli = GeeCLI()
     cli.loop()
 
 

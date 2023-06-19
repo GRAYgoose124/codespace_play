@@ -3,6 +3,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from dataclasses import dataclass
 
+from .cmdli import CMDExit, CLI
+
 from .prompt import PromptContext
 
 Base = declarative_base()
@@ -79,23 +81,27 @@ class PromptBinManager:
         )
 
     def interactive_loop(self):
-        done = False
-        while not done:
-            command = input("> ")
+        class BMCLI(CLI):
+            @staticmethod
+            @CLI.command
+            def add():
+                prompt = input("Enter a prompt to add to the bin:\n+ ")
+                tags = input("Enter tags for the prompt:\n+ ")
+                self.add_prompt(prompt, tags)
 
-            match command:
-                case "add":
-                    prompt = input("Enter a prompt to add to the bin:\n+ ")
-                    tags = input("Enter tags for the prompt:\n+ ")
-                    self.add_prompt(prompt, tags)
+            @staticmethod
+            @CLI.command
+            def list():
+                prompts = self.get_all_prompts()
+                for i, p in enumerate(prompts):
+                    print(f"{i}:\t{p.prompt}\t{p.tags}\t\tcost: {p.tokens_used}")
 
-                case "list":
-                    prompts = self.get_all_prompts()
-                    for i, p in enumerate(prompts):
-                        print(f"{i}:\t{p.prompt}\t{p.tags}\t\tcost: {p.tokens_used}")
+            @staticmethod
+            @CLI.command
+            def exit():
+                raise CMDExit
 
-                case "exit":
-                    done = True
+        BMCLI(command_char=None, prompt_str="# ").loop()
 
     def __enter__(self):
         """You have to admit, it makes the delineation of Session access clearer."""

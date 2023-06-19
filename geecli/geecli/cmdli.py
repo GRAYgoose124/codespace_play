@@ -1,3 +1,6 @@
+import sys
+
+
 class CMDException(Exception):
     pass
 
@@ -17,30 +20,73 @@ def demo_cmd2(a, b):
 
 
 class CLI:
-    def __init__(self):
-        import readline
+    def __init__(self, command_char="/", prompt_str="> "):
+        if "readline" not in sys.modules:
+            import readline
+
+        self.command_char = command_char
+        self.prompt_str = prompt_str
 
         self._commands = {}
         self._command = None
 
         self._unknown_handler = None
+        self._not_slash_handler = None
 
         self.add_command("help", self.help)
-        self.add_command("exit", lambda: True)
+        self.register_commands()
+
+        self.__post_init__()
+
+    def __post_init__(self):
+        pass
+
+    @staticmethod
+    def command(func):
+        """decorator for marking method as a command"""
+        func.is_command = True
+        return func
+
+    @staticmethod
+    def not_slash(func):
+        """decorator for marking method as the not_slash_handler"""
+        func.is_not_slash = True
+        return func
+
+    @staticmethod
+    def unknown(func):
+        """decorator for marking method as the unknown_handler"""
+        func.is_unknown = True
+        return func
+
+    def register_commands(self):
+        for name in dir(self):
+            func = getattr(self, name)
+            if callable(func):
+                if hasattr(func, "is_command") and func.is_command:
+                    self.add_command(name, func)
+                if hasattr(func, "is_not_slash") and func.is_not_slash:
+                    self.set_not_slash_handler(func)
+                if hasattr(func, "is_unknown") and func.is_unknown:
+                    self.set_unknown_handler(func)
 
     def run(self, command) -> bool:
-        if command.startswith("/"):
-            command = command[1:]
+        if self.command_char is None or command.startswith(self.command_char):
+            if self.command_char is not None:
+                command = command[1:]
+
             if command in self._commands:
                 try:
                     self._commands[command]()
                 except CMDException as e:
                     print(f"CMD Error: {e}")
-                except Exception as e:
-                    print(f"Python Error: {e}")
+                except CMDExit:
+                    raise CMDExit
                 except KeyboardInterrupt:
                     print("KeyboardInterrupt")
                     raise CMDExit
+                except Exception as e:
+                    print(f"Python Error: {e}")
             else:
                 self.run_unk_handler(command)
         else:
@@ -49,9 +95,9 @@ class CLI:
     def loop(self):
         try:
             while True:
-                command = input("> ")
+                command = input(self.prompt_str)
                 self.run(command)
-        except StopIteration:
+        except CMDExit:
             pass
 
     def run_not_slash(self, command):
