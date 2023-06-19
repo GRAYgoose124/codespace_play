@@ -74,7 +74,9 @@ class PromptBinManager:
     def add_context(self, context: PromptContext):
         # add messages to bin and update db
         body = "\n".join(m for m in context.messages)
-        self.add_prompt(body, f"{context.model},", context.total_tokens_used)
+        self.add_prompt(
+            body, f"{context.model},{context.title}", context.total_tokens_used
+        )
 
     def interactive_loop(self):
         done = False
