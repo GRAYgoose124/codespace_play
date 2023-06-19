@@ -28,8 +28,10 @@ def init_openai():
 class PromptContext(YAMLWizard):
     title: str = "Conversation"
     model: str = "gpt-3.5-turbo"
-    max_tokens: int = 1000
+    max_tokens: int = 250
+    token_limit: int = 10000
 
+    add_system_to_prompt: bool = False
     messages: list[dict[str, str]] = field(default_factory=list)
     total_tokens_used: int = 0
 
@@ -107,19 +109,26 @@ class PromptContext(YAMLWizard):
     def get_last_assistant_message(self) -> dict[str, str]:
         return self.get_messages_by_role("assistant")[0]
 
-    def get_used_tokens(self) -> int:
-        return sum([m["usage"]["total_tokens"] for m in self.api_history])
-
-    def prompt(self, new_message, add_system_to_prompt=False) -> dict:
-        self.add_message("user", new_message)
-
-        if not add_system_to_prompt:
+    @property
+    def messages_to_prompt(self) -> list[dict[str, str]]:
+        if not self.add_system_to_prompt:
             messages = self.get_messages_by_role("user")
         else:
             messages = self.messages
 
+        return messages
+
+    def prompt(self, new_message) -> dict:
+        if self.total_tokens_used >= self.token_limit:
+            raise ValueError(
+                f"Token limit of {self.token_limit} reached. Please save context and start a new one."
+            )
+        self.add_message("user", new_message)
+
         response = openai.ChatCompletion.create(
-            model=self.model, messages=messages, max_tokens=self.max_tokens
+            model=self.model,
+            messages=self.messages_to_prompt,
+            max_tokens=self.max_tokens,
         )
 
         message = response.choices[0].message.to_dict()

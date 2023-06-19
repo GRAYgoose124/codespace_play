@@ -18,46 +18,59 @@ class PromptsBin(Base):
     tokens_used = Column(Integer, default=0)
 
 
+def active_session_guard(func):
+    def wrapper(self, *args, **kwargs):
+        if self.active_session is None:
+            raise Exception("No active session! Please use a context manager.")
+
+        return func(self, *args, **kwargs)
+
+    return wrapper
+
+
 class PromptBinManager:
     def __init__(self, db_path: str):
         db_path = f"sqlite:///{db_path}/prompts_bin.db"
         self.engine = create_engine(db_path)
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
+        self.active_session = None
 
+    @active_session_guard
     def add_prompt(self, prompt: str, tags: str, tokens_used: int = 0):
-        session = self.Session()
         prompt_bin = PromptsBin(prompt=prompt, tags=tags, tokens_used=tokens_used)
-        session.add(prompt_bin)
-        session.commit()
-        session.close()
+        self.active_session.add(prompt_bin)
+        self.active_session.commit()
 
+    @active_session_guard
     def get_prompts_by_tag(self, tag: str):
-        session = self.Session()
-        prompts = session.query(PromptsBin).filter(PromptsBin.tags.contains(tag)).all()
-        session.close()
-        return prompts
-
-    def get_prompts_by_keyword(self, keyword: str):
-        session = self.Session()
         prompts = (
-            session.query(PromptsBin).filter(PromptsBin.prompt.contains(keyword)).all()
+            self.active_session.query(PromptsBin)
+            .filter(PromptsBin.tags.contains(tag))
+            .all()
         )
-        session.close()
         return prompts
 
+    @active_session_guard
+    def get_prompts_by_keyword(self, keyword: str):
+        prompts = (
+            self.active_session.query(PromptsBin)
+            .filter(PromptsBin.prompt.contains(keyword))
+            .all()
+        )
+        return prompts
+
+    @active_session_guard
     def get_all_prompts(self):
-        session = self.Session()
-        prompts = session.query(PromptsBin).all()
-        session.close()
+        prompts = self.active_session.query(PromptsBin).all()
         return prompts
 
+    @active_session_guard
     def delete_prompt(self, id: int):
-        session = self.Session()
-        session.query(PromptsBin).filter(PromptsBin.id == id).delete()
-        session.commit()
-        session.close()
+        self.active_session.query(PromptsBin).filter(PromptsBin.id == id).delete()
+        self.active_session.commit()
 
+    @active_session_guard
     def add_context(self, context: PromptContext):
         # add messages to bin and update db
         body = "\n".join(m for m in context.messages)
@@ -84,7 +97,10 @@ class PromptBinManager:
 
     def __enter__(self):
         """You have to admit, it makes the delineation of Session access clearer."""
+        self.active_session = self.Session()
+
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        pass
+        self.active_session.close()
+        self.active_session = None

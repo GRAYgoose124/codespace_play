@@ -27,15 +27,20 @@ def interactive_loop(ctx: PromptContext) -> None:
             match new_message[1:]:
                 case "exit":
                     return 0
+                case "ctx":
+                    for k, v in ctx.__dict__.items():
+                        print(f"{k}: {v}")
                 case "tokens":
                     print(f"Total tokens used: {ctx.total_tokens_used}")
                     pass
                 case "cost":
                     ctx.logger.debug(
                         f"Prompting with "
-                        "\n".join([m["content"] for m in ctx.messages])
+                        "\n".join([m["content"] for m in ctx.messages_to_prompt])
                     )
-                    print(f"You have spent {ctx.total_tokens_used} tokens.")
+                    print(
+                        f"You have spent {ctx.total_tokens_used} tokens. You will spend an average of {len(ctx.messages_to_prompt) / 4} tokens next prompting."
+                    )
                     pass
                 case "messages":
                     print("\n".join([m["content"] for m in ctx.messages]))
@@ -73,45 +78,6 @@ def interactive_loop(ctx: PromptContext) -> None:
             except Exception as e:
                 ctx.logger.error("Error during prompting:", e)
                 traceback.print_exc()
-
-
-def load_ctx_wizard(default_ctx_path: Path) -> PromptContext:
-    data_dir = default_ctx_path.parent
-
-    # check for active contextfile to load in root_dir by ".active.yaml" suffix
-
-    if os.path.exists(default_ctx_path):
-        q = input(
-            f"Would you like to load the saved conversation? ({default_ctx_path}) (Y/n)"
-        )
-        # If the user doesn't want to load the file, we'll ask for a new filename.
-        if q.lower() == "n":
-            context = PromptContext(model="gpt-3.5-turbo", save_path=str(data_dir))
-
-            default_ctx_path = None
-            # We'll keep asking for a filename until the user gives us a valid one. (one that doesn't exist or they want to overwrite)
-            while default_ctx_path is None or os.path.exists(default_ctx_path):
-                if default_ctx_path is not None:
-                    q = input("Would you like to overwrite the file? (Y/n)")
-                else:
-                    # To enable the user to specify a file name when no file exists.
-                    q = "n"
-
-                # If the user doesn't want to overwrite the file, we'll ask for a new name
-                if q.lower() == "n" or default_ctx_path is None:
-                    default_ctx_path = data_dir / input(
-                        "What file would you like to save to? "
-                    )
-
-                    # Since we just selected a file, lets mark it as active after unmarking all other files
-
-                    default_ctx_path = default_ctx_path.with_suffix(".active.yaml")
-        else:
-            context = PromptContext.load(default_ctx_path.with_suffix(".yaml"))
-    else:
-        context = PromptContext(model="gpt-3.5-turbo", save_path=str(data_dir))
-
-    return context
 
 
 def main():
