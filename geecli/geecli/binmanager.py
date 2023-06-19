@@ -82,26 +82,23 @@ class PromptBinManager:
 
     def interactive_loop(self):
         class BMCLI(CLI):
-            @staticmethod
             @CLI.command
             def add():
                 prompt = input("Enter a prompt to add to the bin:\n+ ")
                 tags = input("Enter tags for the prompt:\n+ ")
                 self.add_prompt(prompt, tags)
 
-            @staticmethod
             @CLI.command
             def list():
                 prompts = self.get_all_prompts()
                 for i, p in enumerate(prompts):
                     print(f"{i}:\t{p.prompt}\t{p.tags}\t\tcost: {p.tokens_used}")
 
-            @staticmethod
             @CLI.command
             def exit():
                 raise CMDExit
 
-        BMCLI(command_char=None, prompt_str="# ").loop()
+        BMCLI(command_prefix=None, prompt_str="# ").loop()
 
     def __enter__(self):
         """You have to admit, it makes the delineation of Session access clearer."""

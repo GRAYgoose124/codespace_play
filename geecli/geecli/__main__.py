@@ -18,19 +18,16 @@ logger = None
 
 def interactive_loop(ctx: PromptContext) -> None:
     class GeeCLI(CLI):
-        @staticmethod
         @CLI.command
         def contx():
             for k, v in ctx.__dict__.items():
                 print(f"{k}: {v}")
 
-        @staticmethod
         @CLI.command
         def tokens():
             print(f"Total tokens used: {ctx.total_tokens_used}")
             pass
 
-        @staticmethod
         @CLI.command
         def cost():
             ctx.logger.debug(
@@ -42,12 +39,10 @@ def interactive_loop(ctx: PromptContext) -> None:
             )
             pass
 
-        @staticmethod
         @CLI.command
         def messages():
             print("\n".join([m["content"] for m in ctx.messages]))
 
-        @staticmethod
         @CLI.command
         def clear():
             q = input("THIS IS A VERY DESTRUCTIVE ACTION, ARE YOU SURE? (y/N)")
@@ -58,7 +53,6 @@ def interactive_loop(ctx: PromptContext) -> None:
                 ctx.clear_messages()
                 print("Prompt messages cleared, fresh working space ready.")
 
-        @staticmethod
         @CLI.command
         def open():
             files = os.listdir(os.getcwd())
@@ -70,20 +64,17 @@ def interactive_loop(ctx: PromptContext) -> None:
             ctx.from_yaml_file(files[index])
             print(f"Loaded {files[index]}")
 
-        @staticmethod
         @CLI.command
         def save():
             name = input("Name of the file? ")
             ctx.to_yaml_file(name)
 
-        @staticmethod
         @CLI.command
         def binman():
             print("Welcome to BinManager!")
             with BinManager(ctx.save_path) as bm:
                 bm.interactive_loop()
 
-        @staticmethod
         @CLI.not_slash
         def prompt_handler(new_message: str):
             try:

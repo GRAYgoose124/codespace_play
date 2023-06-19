@@ -45,19 +45,19 @@ class CLI:
     def command(func):
         """decorator for marking method as a command"""
         func.is_command = True
-        return func
+        return staticmethod(func)
 
     @staticmethod
     def not_slash(func):
         """decorator for marking method as the not_slash_handler"""
         func.is_not_slash = True
-        return func
+        return staticmethod(func)
 
     @staticmethod
     def unknown(func):
         """decorator for marking method as the unknown_handler"""
         func.is_unknown = True
-        return func
+        return staticmethod(func)
 
     def register_commands(self):
         for name in dir(self):
