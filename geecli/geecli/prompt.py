@@ -28,7 +28,7 @@ def init_openai():
 class PromptContext(YAMLWizard):
     title: str = "Conversation"
     model: str = "gpt-3.5-turbo"
-    max_tokens: int = 8000
+    max_tokens: int = 1000
 
     messages: list[dict[str, str]] = field(default_factory=list)
     total_tokens_used: int = 0
@@ -40,7 +40,10 @@ class PromptContext(YAMLWizard):
     def __post_init__(self):
         self._saved_file = None
         self.logger = init_logger(
-            name=self.__class__.__name__, parent="geecli", level=logging.INFO
+            name=self.__class__.__name__,
+            parent="geecli",
+            level=logging.INFO,
+            root_dir=Path(self.save_path),
         )
 
     @staticmethod
@@ -86,7 +89,7 @@ class PromptContext(YAMLWizard):
 
     def get_messages_by_role(
         self, role: Literal["system", "user", "assistant"], invert: bool = True
-    ) -> dict[str, str]:
+    ) -> list[dict[str, str]]:
         return [m for m in self.messages if m["role"] == role][:: -1 if invert else 1]
 
     def get_message_by_index(self, index: int, invert: bool = True) -> dict[str, str]:
@@ -107,11 +110,16 @@ class PromptContext(YAMLWizard):
     def get_used_tokens(self) -> int:
         return sum([m["usage"]["total_tokens"] for m in self.api_history])
 
-    def prompt(self, new_message) -> dict:
+    def prompt(self, new_message, add_system_to_prompt=False) -> dict:
         self.add_message("user", new_message)
 
+        if not add_system_to_prompt:
+            messages = self.get_messages_by_role("user")
+        else:
+            messages = self.messages
+
         response = openai.ChatCompletion.create(
-            model=self.model, messages=self.messages
+            model=self.model, messages=messages, max_tokens=self.max_tokens
         )
 
         message = response.choices[0].message.to_dict()

@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from dataclasses import dataclass
 
-from geecli.geecli.prompt import PromptContext
+from .prompt import PromptContext
 
 Base = declarative_base()
 
@@ -19,7 +19,8 @@ class PromptsBin(Base):
 
 
 class PromptBinManager:
-    def __init__(self, db_path="sqlite:///prompts_bin.db"):
+    def __init__(self, db_path: str):
+        db_path = f"sqlite:///{db_path}/prompts_bin.db"
         self.engine = create_engine(db_path)
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
@@ -61,3 +62,29 @@ class PromptBinManager:
         # add messages to bin and update db
         body = "\n".join(m for m in context.messages)
         self.add_prompt(body, f"{context.model},", context.total_tokens_used)
+
+    def interactive_loop(self):
+        done = False
+        while not done:
+            command = input("> ")
+
+            match command:
+                case "add":
+                    prompt = input("Enter a prompt to add to the bin:\n+ ")
+                    tags = input("Enter tags for the prompt:\n+ ")
+                    self.add_prompt(prompt, tags)
+
+                case "list":
+                    prompts = self.get_all_prompts()
+                    for i, p in enumerate(prompts):
+                        print(f"{i}:\t{p.prompt}\t{p.tags}\t\tcost: {p.tokens_used}")
+
+                case "exit":
+                    done = True
+
+    def __enter__(self):
+        """You have to admit, it makes the delineation of Session access clearer."""
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        pass

@@ -7,6 +7,7 @@ import sys
 import traceback
 
 from .prompt import init_openai, PromptContext
+from .binmanager import PromptBinManager as BinManager
 from .utils import init_logger, ExitSignal, argparser
 
 
@@ -14,6 +15,8 @@ logger = None
 
 
 def interactive_loop(ctx: PromptContext) -> None:
+    import readline
+
     while True:
         new_message = input("You: ")
 
@@ -32,7 +35,7 @@ def interactive_loop(ctx: PromptContext) -> None:
                         f"Prompting with "
                         "\n".join([m["content"] for m in ctx.messages])
                     )
-                    print(f"You will spend {ctx.total_tokens_used} tokens.")
+                    print(f"You have spent {ctx.total_tokens_used} tokens.")
                     pass
                 case "messages":
                     print("\n".join([m["content"] for m in ctx.messages]))
@@ -56,6 +59,12 @@ def interactive_loop(ctx: PromptContext) -> None:
                 case "save":
                     name = input("Name of the file? ")
                     ctx.to_yaml_file(name)
+
+                case "binman":
+                    print("Welcome to BinManager!")
+                    with BinManager(ctx.save_path) as bm:
+                        bm.interactive_loop()
+
         else:
             try:
                 response = ctx.prompt(new_message)
@@ -70,16 +79,6 @@ def load_ctx_wizard(default_ctx_path: Path) -> PromptContext:
     data_dir = default_ctx_path.parent
 
     # check for active contextfile to load in root_dir by ".active.yaml" suffix
-    files = [
-        f
-        for f in data_dir.iterdir()
-        if f.is_file()
-        and not f.name.startswith(".")
-        and f.name.endswith(".active.yaml")
-    ]
-    if any(files):
-        default_ctx_path = data_dir / files[0]
-        logger.debug(f"Found active context file: {default_ctx_path}")
 
     if os.path.exists(default_ctx_path):
         q = input(
@@ -105,13 +104,10 @@ def load_ctx_wizard(default_ctx_path: Path) -> PromptContext:
                     )
 
                     # Since we just selected a file, lets mark it as active after unmarking all other files
-                    for f in data_dir.iterdir():
-                        if f.name.endswith(".active.yaml"):
-                            f.rename(f.with_suffix(".yaml"))
 
                     default_ctx_path = default_ctx_path.with_suffix(".active.yaml")
         else:
-            context = PromptContext.load(default_ctx_path)
+            context = PromptContext.load(default_ctx_path.with_suffix(".yaml"))
     else:
         context = PromptContext(model="gpt-3.5-turbo", save_path=str(data_dir))
 
@@ -134,8 +130,26 @@ def main():
     global logger
     logger = init_logger(name="geecli", root_dir=data_dir, level=logging.INFO)
 
-    #   context
-    context = load_ctx_wizard(data_dir / args.context_file)
+    # get active context file
+    if (
+        input(f"Would you like to load the last saved conversation? (Y/n)").lower()
+        != "n"
+    ):
+        active_files = [
+            f
+            for f in data_dir.iterdir()
+            if f.is_file()
+            and not f.name.startswith(".")
+            and f.name.endswith(".active.yaml")
+        ]
+        if any(active_files):
+            default_ctx_path = data_dir / active_files[0]
+            logger.debug(f"Found active context file: {default_ctx_path}")
+            context = PromptContext.load(default_ctx_path)
+        else:
+            context = PromptContext(save_path=str(data_dir))
+    else:
+        context = PromptContext(save_path=str(data_dir))
 
     # main loop
     try:
@@ -148,7 +162,20 @@ def main():
         traceback.print_exc()
         exit_code = 1
     finally:
-        context.save()
+        if len(context.messages) > 0:
+            # unmark other active files
+            for f in data_dir.iterdir():
+                if ".active." in f.name:
+                    f.rename(f.with_name(f.name.replace(".active.", ".")))
+
+            path = context.save()
+
+            # mark active file
+            if not path.name.endswith(".active.yaml"):
+                path.rename(path.with_suffix(".active.yaml"))
+
+            logger.debug(f"Saved context to {path}")
+
         sys.exit(exit_code)
 
 
