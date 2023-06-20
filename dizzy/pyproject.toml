@@ -16,3 +16,5 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 dizzy = "dizzy.__main__:main"
+dizzy-server = "dizzy.daemon:server"
+dizzy-client = "dizzy.daemon:client"

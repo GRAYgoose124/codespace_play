@@ -1,10 +1,4 @@
 service:
-  dependencies:
-  - - D
-    - - B
-      - C
-  - - B
-    - - A
   description: The Numero Uno service.
   name: uno
   tasks: ["A", "B", "C", "D"]

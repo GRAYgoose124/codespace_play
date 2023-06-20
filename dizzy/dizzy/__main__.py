@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import asyncio
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -20,6 +21,7 @@ def load_module(path: Path) -> object:
 class Task(ABC):
     name: str
     description: str
+    # dependencies: list[str] = field(default_factory=list)
 
     @abstractmethod
     def run(self, *args, **kwargs):
@@ -32,19 +34,14 @@ class Service:
     description: str
 
     tasks: list[str] = field(default_factory=list)
-    dependencies: list[list[str, list[str]]] = field(default_factory=list)
 
     def __post_init__(self):
         self.__task_root = None
         self.__loaded_tasks = {}
 
     def _load_tasks(self):
-        print(self.__task_root)
-        # find all py in task_root and check if they are in tasks
         for task in Path(self.__task_root).glob("*.py"):
-            # load module and find any class that inherits from Task
             module = load_module(task)
-            print(task, module.__dict__.keys())
             for name, obj in module.__dict__.items():
                 if (
                     isinstance(obj, type)
@@ -57,7 +54,7 @@ class Service:
     def load_from_yaml(service: Path) -> "Service":
         with open(service) as f:
             S = Service(**yaml.safe_load(f)["service"])
-            S.__task_root = str(service.parent)
+            S.__task_root = str(service.parent / "tasks")
             S._load_tasks()
 
             return S
@@ -68,6 +65,9 @@ class Service:
                 raise ValueError(f"Task {name} not loaded")
             raise KeyError(f"Task {name} not found in service {self.name}")
         return self.__loaded_tasks[name]
+
+    def get_tasks(self) -> list[Task]:
+        return list(self.__loaded_tasks.values())
 
 
 class ServiceManager:
@@ -80,17 +80,40 @@ class ServiceManager:
             self.services[S.name] = S
 
 
+class SimpleCLIClient:
+    def __init__(self):
+        self.context = zmq.Context()
+        self.socket = self.context.socket(zmq.REQ)
+        self.socket.connect("tcp://localhost:5555")
+
+    def run(self):
+        while True:
+            service = input("Service: ")
+            task = input("Task: ")
+
+            self.socket.send(json.dumps({"service": service, "task": task}).encode())
+
+            message = self.socket.recv()
+
+            print(message)
+
+
 def main():
-    root = Path(__file__).parent
-    uno_file = root / "simple_service/uno.yml"
+    # root = Path(__file__).parent
+    # uno_file = root / "simple_service/uno.yml"
 
-    services = [uno_file]
+    # services = [uno_file]
 
-    man = ServiceManager()
+    # man = ServiceManager()
 
-    man.load_services(services)
+    # man.load_services(services)
 
-    print(man.services["uno"].get_task("D").run())
+    # print(man.services["uno"].get_task("D").run())
+
+    # run server in background
+    asyncio.run(RequestServer().run())
+
+    SimpleCLIClient().run()
 
 
 if __name__ == "__main__":
