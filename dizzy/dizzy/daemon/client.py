@@ -1,6 +1,9 @@
 import zmq
 import json
 import readline
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SimpleCLIClient:
@@ -32,6 +35,16 @@ class SimpleCLIClient:
 
             if "ctx" in message:
                 # client_ctx = message["ctx"]
-                print(f"New context: {message['ctx']}")
+                logger.debug(f"\tNew context: {message['ctx']}")
 
-            print(message["result" if "result" in message else "error"])
+            if len(message["errors"]) > 0:
+                logger.error("\tErrors:")
+                for error in message["errors"]:
+                    if "Service not found" in error:
+                        service = None
+                    logger.error(f"\t\t{error}")
+
+            if "available_services" in message:
+                logger.info(f"\tAvailable tasks: {message['available_services']}")
+
+            print("\tResult: ", message["result"])

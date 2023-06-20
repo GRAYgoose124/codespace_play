@@ -3,9 +3,13 @@ from typing import Optional
 
 import yaml
 import importlib
+import logging
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+
+
+logger = logging.getLogger(__name__)
 
 
 def load_module(path: Path) -> object:
@@ -56,6 +60,7 @@ class Service:
                     and issubclass(obj, Task)
                     and name in self.tasks
                 ):
+                    logger.debug(f"[{self.name}] Loading task {name} from {task}")
                     obj.name = obj.__name__
                     obj.description = obj.__doc__
                     self.__loaded_tasks[name] = obj
@@ -63,10 +68,12 @@ class Service:
     @staticmethod
     def load_from_yaml(service: Path) -> "Service":
         with open(service) as f:
+            logger.debug(f"Loading service from {service}")
             S = Service(**yaml.safe_load(f)["service"])
             S.__task_root = str(service.parent / "tasks")
             S._load_tasks()
 
+            logger.debug(f"Loaded service {S.name} with tasks {S.tasks}")
             return S
 
     def get_task(self, name: str) -> Task:
@@ -78,6 +85,9 @@ class Service:
 
     def get_tasks(self) -> list[Task]:
         return list(self.__loaded_tasks.values())
+
+    def get_task_names(self) -> list[str]:
+        return list(self.__loaded_tasks.keys())
 
 
 class ServiceManager:
@@ -95,8 +105,19 @@ class ServiceManager:
                 return service
         return None
 
-    def get_task(self, service: str, task: str) -> Task:
-        return self.services[service].get_task(task)
+    def get_service(self, service: str) -> Optional[Service]:
+        if service in self.services:
+            return self.services[service]
+        return None
+
+    def get_services(self) -> list[Service]:
+        return list(self.services.values())
+
+    def get_service_names(self) -> list[str]:
+        return list(self.services.keys())
+
+    def get_service_items(self) -> list[tuple[str, list[str]]]:
+        return [(s.name, s.get_task_names()) for s in self.services.values()]
 
     def find_task(self, task: str) -> Optional[Task]:
         owner = self.find_owner_service(task)
@@ -122,15 +143,36 @@ class ServiceManager:
 
         return tasks
 
-    def run_tasklist(self, workflow: list[Task], ctx: dict) -> dict:
-        """Run a workflow in a context"""
-        for task in workflow:
-            print(f"Running task {task.name}, {ctx=}")
-            result = task.run(ctx)
-        return result
+    def run_tasklist(self, tasklist: list[Task], ctx: dict) -> dict:
+        """Run a tasklist in a context"""
+        logger.debug(f"Running {tasklist=}")
+
+        results = []
+        for task in tasklist:
+            logger.debug(f"-- Running task {task.name}, {ctx=}")
+            results.append(task.run(ctx))
+
+        logger.debug(f"- Tasklist results: {results=}")
+        return results[-1] if len(results) > 0 else None
 
     def run_task(self, task: str, ctx: dict) -> dict:
         """Run a task in a context"""
-        workflow = self.resolve_task_dependencies(task)
-        print(f"Running workflow {workflow=}")
-        return self.run_tasklist(workflow, ctx)
+        logger.debug(f"Running {task=}")
+
+        tasklist = self.resolve_task_dependencies(task)
+        return self.run_tasklist(tasklist, ctx)
+
+    def run_subflow(self, subflow: list[str] | str, ctx: dict) -> dict:
+        """Run a workflow in a context"""
+        logger.debug(f"Running {subflow=}")
+
+        if isinstance(subflow, str):
+            subflow = subflow.split("->")
+
+        if ctx is None:
+            ctx = {}
+
+        for task in subflow:
+            result = self.run_task(task, ctx)
+
+        return result, ctx

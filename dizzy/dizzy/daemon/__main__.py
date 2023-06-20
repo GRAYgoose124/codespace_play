@@ -1,6 +1,8 @@
 import json
+import logging
 from pathlib import Path
 import sys
+import argparse
 
 from dizzy.daemon import Server, Client
 from dizzy.daemon.settings import default_services
@@ -27,15 +29,24 @@ def client():
 
 
 def main():
-    """python -m dizzy.daemon [server|client]"""
-    args = sys.argv[1:]
-    if len(args) == 0:
-        print("Please specify either 'server' or 'client'")
-        sys.exit(1)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "mode", choices=["server", "client"], help="Specify either 'server' or 'client'"
+    )
+    parser.add_argument(
+        "-v",
+        "--verbosity",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="INFO",
+        help="Specify the logging level",
+    )
+    args = parser.parse_args()
 
-    if args[0] == "server":
+    logging.basicConfig(level=getattr(logging, args.verbosity))
+
+    if args.mode == "server":
         server()
-    elif args[0] == "client":
+    elif args.mode == "client":
         client()
 
 
