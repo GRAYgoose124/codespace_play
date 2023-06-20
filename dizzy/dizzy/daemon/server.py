@@ -1,12 +1,10 @@
 import json
-from pathlib import Path
-import sys
 import zmq
 
 from dizzy import ServiceManager
 
 
-class RequestServer:
+class SimpleRequestServer:
     def __init__(self):
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.REP)
@@ -58,67 +56,3 @@ class RequestServer:
             except Exception as e:
                 self.socket.send(json.dumps({"error": str(e)}).encode())
                 continue
-
-
-class SimpleCLIClient:
-    def __init__(self):
-        self.context = zmq.Context()
-        self.socket = self.context.socket(zmq.REQ)
-        self.socket.connect("tcp://localhost:5555")
-
-    def run(self):
-        service = "uno"
-        task = "A"
-
-        while True:
-            new_service = input(f"Service: ({service}) ")
-            service = new_service if new_service else service
-
-            new_task = input(f"Task: ({task}) ")
-            task = new_task if new_task else "A"
-
-            self.socket.send(json.dumps({"service": service, "task": task}).encode())
-
-            message = json.loads(self.socket.recv().decode())
-
-            print(message["result" if "result" in message else "error"])
-
-
-def server():
-    root = Path(__file__).parent
-    uno_file = root / "simple_service/uno.yml"
-
-    services = [uno_file]
-
-    server = RequestServer()
-    server.service_manager.load_services(services)
-
-    try:
-        server.run()
-    except KeyboardInterrupt:
-        print("Server stopped.")
-
-
-def client():
-    client = SimpleCLIClient()
-
-    try:
-        client.run()
-    except KeyboardInterrupt:
-        print("Client stopped.")
-
-
-def main():
-    args = sys.argv[1:]
-    if len(args) == 0:
-        print("Please specify either 'server' or 'client'")
-        sys.exit(1)
-
-    if args[0] == "server":
-        server()
-    elif args[0] == "client":
-        client()
-
-
-if __name__ == "__main__":
-    main()

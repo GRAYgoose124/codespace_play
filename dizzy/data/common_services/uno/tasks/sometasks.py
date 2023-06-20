@@ -2,7 +2,6 @@ from dizzy import Task
 
 
 class A(Task):
-    name = "A"
     description = "A task"
 
     @staticmethod

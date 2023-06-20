@@ -21,7 +21,7 @@ def load_module(path: Path) -> object:
 class Task(ABC):
     name: str
     description: str
-    # dependencies: list[str] = field(default_factory=list)
+    dependencies: list[str] = field(default_factory=list)
 
     @abstractmethod
     def run(self, *args, **kwargs):
