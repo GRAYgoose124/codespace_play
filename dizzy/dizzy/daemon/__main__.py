@@ -10,6 +10,7 @@ def server():
     server = Server()
     server.service_manager.load_services(default_services)
 
+    print(server.service_manager.services)
     try:
         server.run()
     except KeyboardInterrupt:

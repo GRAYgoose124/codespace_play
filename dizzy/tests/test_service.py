@@ -27,4 +27,4 @@ class TestServiceManager:
         ctx = {}
         tasklist = self.man.resolve_task_dependencies("C")
         self.man.run_tasklist(tasklist, ctx)
-        assert ctx == {"A": "A", "B": "B", "C": "C"}
+        assert ctx == {"A": "A", "B": "AB", "C": "C"}

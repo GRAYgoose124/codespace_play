@@ -44,19 +44,14 @@ class SimpleRequestServer:
 
             task = json_obj["task"]
 
-            try:
-                task_obj = self.service_manager.services[service].get_task(task)
-            except KeyError:
-                self.socket.send(json.dumps({"error": "Task not found"}).encode())
-                continue
-
             if "ctx" not in json_obj:
                 ctx = {}
             else:
                 ctx = json_obj["ctx"]
 
             try:
-                result = task_obj.run(ctx)
+                result = self.service_manager.run_task(task, ctx)
+                print(f"Sending result: {result=}, {ctx=}, {task=}")
                 self.socket.send(json.dumps({"result": result, "ctx": ctx}).encode())
             except Exception as e:
                 self.socket.send(json.dumps({"error": str(e)}).encode())

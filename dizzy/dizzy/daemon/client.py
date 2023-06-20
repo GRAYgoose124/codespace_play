@@ -1,5 +1,6 @@
 import zmq
 import json
+import readline
 
 
 class SimpleCLIClient:
@@ -28,6 +29,9 @@ class SimpleCLIClient:
             )
 
             message = json.loads(self.socket.recv().decode())
-            client_ctx = message["ctx"]
+
+            if "ctx" in message:
+                # client_ctx = message["ctx"]
+                print(f"New context: {message['ctx']}")
 
             print(message["result" if "result" in message else "error"])

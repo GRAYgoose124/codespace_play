@@ -9,7 +9,7 @@ class C(Task):
     @staticmethod
     def run(ctx):
         ctx["C"] = "C"
-        return "C"
+        return f"{ctx['B']}C"
 
 
 class D(Task):

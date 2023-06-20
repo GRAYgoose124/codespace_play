@@ -2,7 +2,6 @@ from dizzy import Task
 
 
 class A(Task):
-    name = "A"
     description = "A task"
 
     @staticmethod
@@ -12,11 +11,10 @@ class A(Task):
 
 
 class B(Task):
-    name = "B"
     description = "B task"
     dependencies = ["A"]
 
     @staticmethod
     def run(ctx):
-        ctx["B"] = "B"
-        return "B"
+        ctx["B"] = f"{ctx['A']}B"
+        return f"{ctx['A']}B"

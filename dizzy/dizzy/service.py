@@ -20,9 +20,16 @@ def load_module(path: Path) -> object:
 
 @dataclass
 class Task(ABC):
-    name: str
-    description: str
+    name: Optional[str] = None
+    description: Optional[str] = None
     dependencies: Optional[list[str]] = field(default_factory=list)
+
+    def __post_init__(self):
+        if self.name is None:
+            self.name = self.__class__.__name__
+
+        if self.description is None:
+            self.description = self.__class__.__doc__
 
     @abstractmethod
     def run(self, *args, **kwargs):
@@ -49,6 +56,8 @@ class Service:
                     and issubclass(obj, Task)
                     and name in self.tasks
                 ):
+                    obj.name = obj.__name__
+                    obj.description = obj.__doc__
                     self.__loaded_tasks[name] = obj
 
     @staticmethod
@@ -99,7 +108,7 @@ class ServiceManager:
         """Turn a task into a list of tasks, with dependencies first"""
         t = self.find_task(task)
 
-        if not t:
+        if not t or t is None:
             raise ValueError(f"Task {task} not found")
 
         tasks = []
@@ -109,17 +118,19 @@ class ServiceManager:
 
         for dep in t.dependencies:
             tasks = self.resolve_task_dependencies(dep) + tasks
-
         tasks.append(t)
-        return tasks
 
-    def run_task_in_ctx(self, task: str, ctx: dict) -> dict:
-        """Run a task in a context"""
-        t = self.find_task(task)
-        return t.run(ctx)
+        return tasks
 
     def run_tasklist(self, workflow: list[Task], ctx: dict) -> dict:
         """Run a workflow in a context"""
         for task in workflow:
-            self.run_task_in_ctx(task.name, ctx)
-        return ctx
+            print(f"Running task {task.name}, {ctx=}")
+            result = task.run(ctx)
+        return result
+
+    def run_task(self, task: str, ctx: dict) -> dict:
+        """Run a task in a context"""
+        workflow = self.resolve_task_dependencies(task)
+        print(f"Running workflow {workflow=}")
+        return self.run_tasklist(workflow, ctx)
