@@ -3,19 +3,12 @@ from pathlib import Path
 import sys
 
 from dizzy.daemon import Server, Client
+from dizzy.daemon.settings import default_services
 
 
 def server():
-    data_root = Path(__file__).parent.parent.parent / "data"
-
-    common_services = data_root / "common_services"
-
-    uno_file = common_services / "uno/service.yml"
-
-    service_files = [uno_file]
-
     server = Server()
-    server.service_manager.load_services(service_files)
+    server.service_manager.load_services(default_services)
 
     try:
         server.run()

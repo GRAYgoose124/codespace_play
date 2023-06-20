@@ -1,5 +1,4 @@
 import subprocess
-from .daemon import server, client
 
 
 def main() -> None:

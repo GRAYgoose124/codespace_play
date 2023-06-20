@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 
 import yaml
 import importlib
@@ -21,7 +22,7 @@ def load_module(path: Path) -> object:
 class Task(ABC):
     name: str
     description: str
-    dependencies: list[str] = field(default_factory=list)
+    dependencies: Optional[list[str]] = field(default_factory=list)
 
     @abstractmethod
     def run(self, *args, **kwargs):
@@ -78,3 +79,33 @@ class ServiceManager:
         for service in services:
             S = Service.load_from_yaml(service)
             self.services[S.name] = S
+
+    def find_owner_service(self, task: str) -> Optional[Service]:
+        for service in self.services.values():
+            if task in service.tasks:
+                return service
+        return None
+
+    def get_task(self, service: str, task: str) -> Task:
+        return self.services[service].get_task(task)
+
+    def find_task(self, task: str) -> Optional[Task]:
+        owner = self.find_owner_service(task)
+        if owner:
+            return owner.get_task(task)
+        return None
+
+    def resolve_task_dependencies(self, task: str) -> list[Task]:
+        """Turn a task into a list of tasks, with dependencies first"""
+        task = self.find_task(task)
+
+        tasks = []
+
+        if not task.dependencies:
+            return [task]
+
+        for dep in task.dependencies:
+            tasks.extend(self.resolve_task_dependencies(self.find_task(dep)))
+
+        tasks.append(task)
+        return tasks

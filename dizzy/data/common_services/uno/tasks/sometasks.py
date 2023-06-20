@@ -12,6 +12,7 @@ class A(Task):
 class B(Task):
     name = "B"
     description = "B task"
+    depends_on = ["A"]
 
     @staticmethod
     def run():
