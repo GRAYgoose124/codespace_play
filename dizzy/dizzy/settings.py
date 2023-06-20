@@ -1,0 +1,1 @@
+PRUNE_HOURS = 24

@@ -4,8 +4,8 @@ from pathlib import Path
 import sys
 import argparse
 
-from dizzy.daemon import Server, Client
-from dizzy.daemon.settings import default_services
+from . import Server, Client
+from .settings import default_services
 
 
 def server():
