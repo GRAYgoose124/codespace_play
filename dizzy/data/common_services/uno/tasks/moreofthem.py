@@ -4,9 +4,11 @@ from dizzy import Task
 class C(Task):
     name = "C"
     description = "C task"
+    dependencies = ["B"]
 
     @staticmethod
-    def run():
+    def run(ctx):
+        ctx["C"] = "C"
         return "C"
 
 
@@ -15,5 +17,6 @@ class D(Task):
     description = "D task"
 
     @staticmethod
-    def run():
+    def run(ctx):
+        ctx["D"] = "D"
         return "D"

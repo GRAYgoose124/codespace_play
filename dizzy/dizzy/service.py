@@ -97,15 +97,29 @@ class ServiceManager:
 
     def resolve_task_dependencies(self, task: str) -> list[Task]:
         """Turn a task into a list of tasks, with dependencies first"""
-        task = self.find_task(task)
+        t = self.find_task(task)
+
+        if not t:
+            raise ValueError(f"Task {task} not found")
 
         tasks = []
 
-        if not task.dependencies:
-            return [task]
+        if "dependencies" not in t.__dict__ or not t.dependencies:
+            return [t]
 
-        for dep in task.dependencies:
-            tasks.extend(self.resolve_task_dependencies(self.find_task(dep)))
+        for dep in t.dependencies:
+            tasks = self.resolve_task_dependencies(dep) + tasks
 
-        tasks.append(task)
+        tasks.append(t)
         return tasks
+
+    def run_task_in_ctx(self, task: str, ctx: dict) -> dict:
+        """Run a task in a context"""
+        t = self.find_task(task)
+        return t.run(ctx)
+
+    def run_tasklist(self, workflow: list[Task], ctx: dict) -> dict:
+        """Run a workflow in a context"""
+        for task in workflow:
+            self.run_task_in_ctx(task.name, ctx)
+        return ctx

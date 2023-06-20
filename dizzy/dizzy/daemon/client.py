@@ -12,6 +12,8 @@ class SimpleCLIClient:
         service = "uno"
         task = "A"
 
+        client_ctx = {}
+
         while True:
             new_service = input(f"Service: ({service}) ")
             service = new_service if new_service else service
@@ -19,8 +21,13 @@ class SimpleCLIClient:
             new_task = input(f"Task: ({task}) ")
             task = new_task if new_task else task
 
-            self.socket.send(json.dumps({"service": service, "task": task}).encode())
+            self.socket.send(
+                json.dumps(
+                    {"service": service, "task": task, "ctx": client_ctx}
+                ).encode()
+            )
 
             message = json.loads(self.socket.recv().decode())
+            client_ctx = message["ctx"]
 
             print(message["result" if "result" in message else "error"])

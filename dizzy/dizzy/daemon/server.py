@@ -50,9 +50,14 @@ class SimpleRequestServer:
                 self.socket.send(json.dumps({"error": "Task not found"}).encode())
                 continue
 
+            if "ctx" not in json_obj:
+                ctx = {}
+            else:
+                ctx = json_obj["ctx"]
+
             try:
-                result = task_obj.run()
-                self.socket.send(json.dumps({"result": result}).encode())
+                result = task_obj.run(ctx)
+                self.socket.send(json.dumps({"result": result, "ctx": ctx}).encode())
             except Exception as e:
                 self.socket.send(json.dumps({"error": str(e)}).encode())
                 continue
