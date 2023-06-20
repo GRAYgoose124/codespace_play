@@ -5,14 +5,15 @@ import sys
 import argparse
 
 from . import Server, Client
-from .settings import default_services
+from .settings import default_services, default_entities
 
 
 def server():
     server = Server()
-    server.service_manager.load_services(default_services)
 
-    print(server.service_manager.services)
+    server.service_manager.load_services(default_services.values())
+    server.entity_manager.load_entities(default_entities.values())
+
     try:
         server.run()
     except KeyboardInterrupt:

@@ -1,4 +1,5 @@
-from dizzy.service import Task, Service, ServiceManager
+from .service import Task, Service, ServiceManager
+from .entity import EntityManager
 
 
-__all__ = ["Task", "Service", "ServiceManager"]
+__all__ = ["Task", "Service", "ServiceManager", "EntityManager"]

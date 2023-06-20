@@ -93,11 +93,13 @@ class Service:
 class ServiceManager:
     def __init__(self):
         self.services = {}
+        logger.debug(f"Created new service manager {self}")
 
     def load_services(self, services: list[Path]):
         for service in services:
             S = Service.load_from_yaml(service)
             self.services[S.name] = S
+            logger.debug(f"Loaded service {S.name}")
 
     def find_owner_service(self, task: str) -> Optional[Service]:
         for service in self.services.values():

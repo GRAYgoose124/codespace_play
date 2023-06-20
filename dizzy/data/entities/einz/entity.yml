@@ -1,3 +1,6 @@
-request:
+entity:
+  name: einz
+  description: Unifying Servitude in One
+  services: ["uno", "dos"]
   workflows:
     c_and_d: "C -> D"

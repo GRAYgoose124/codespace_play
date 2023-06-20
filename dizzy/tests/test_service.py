@@ -8,10 +8,12 @@ from dizzy.daemon.settings import default_services
 class TestServiceManager:
     def setup_method(self):
         self.man = ServiceManager()
-        self.man.load_services(default_services)
+        self.man.load_services(default_services.values())
+
+        print(default_services, self.man.services.values())
 
     def test_ServiceManager(self):
-        assert self.man.services["uno"].get_task("D").run({}) == "D"
+        assert self.man.get_service("uno").get_task("D").run({}) == "D"
 
     def test_task_resolution(self):
         assert [t.name for t in self.man.resolve_task_dependencies("D")] == ["D"]

@@ -1,4 +1,4 @@
 service:
-  description: The Numero Uno service.
   name: uno
+  description: The Numero Uno service.
   tasks: ["A", "B", "C", "D"]

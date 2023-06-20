@@ -13,38 +13,67 @@ class SimpleCLIClient:
         self.socket.connect("tcp://localhost:5555")
 
     def run(self):
-        service = "uno"
-        task = "A"
-
         client_ctx = {}
 
         while True:
-            new_service = input(f"Service: ({service}) ")
-            service = new_service if new_service else service
+            command = input("Enter a command (task/workflow/context/clear/exit): ")
+            if command == "task":
+                self.request_task(client_ctx)
+            elif command == "workflow":
+                self.request_workflow(client_ctx)
+            elif command == "clear":
+                client_ctx = {}
+                print("Context cleared.")
+            elif command == "context":
+                print(f"Context: {client_ctx}")
+            elif command == "exit":
+                break
+            else:
+                print("Invalid command. Please try again.")
 
-            new_task = input(f"Task: ({task}) ")
-            task = new_task if new_task else task
+    def request_task(self, client_ctx):
+        service = input("Enter the common service: ")
+        task = input("Enter the task: ")
 
-            self.socket.send(
-                json.dumps(
-                    {"service": service, "task": task, "ctx": client_ctx}
-                ).encode()
-            )
+        self.socket.send_json({"service": service, "task": task, "ctx": client_ctx})
 
-            message = json.loads(self.socket.recv().decode())
+        message = json.loads(self.socket.recv().decode())
+        logger.debug(f"Received response: {message}")
 
-            if "ctx" in message:
-                # client_ctx = message["ctx"]
-                logger.debug(f"\tNew context: {message['ctx']}")
+        if "ctx" in message:
+            client_ctx = message["ctx"]
+            logger.debug(f"\tNew context: {client_ctx}")
 
-            if len(message["errors"]) > 0:
-                logger.error("\tErrors:")
-                for error in message["errors"]:
-                    if "Service not found" in error:
-                        service = None
-                    logger.error(f"\t\t{error}")
+        if len(message["errors"]) > 0:
+            logger.error("\tErrors:")
+            for error in message["errors"]:
+                if "Service not found" in error:
+                    service = None
+                logger.error(f"\t\t{error}")
 
-            if "available_services" in message:
-                logger.info(f"\tAvailable tasks: {message['available_services']}")
+        if "available_services" in message:
+            logger.info(f"\tAvailable tasks: {message['available_services']}")
 
-            print("\tResult: ", message["result"])
+        print("\tResult: ", message["result"])
+
+    def request_workflow(self, client_ctx):
+        entity = input("Enter the entity: ")
+        workflow = input("Enter the workflow: ")
+
+        self.socket.send_json(
+            {"entity": entity, "workflow": workflow, "ctx": client_ctx}
+        )
+
+        message = json.loads(self.socket.recv().decode())
+        logger.debug(f"Received response: {message}")
+
+        if "ctx" in message:
+            client_ctx = message["ctx"]
+            logger.debug(f"\tNew context: {client_ctx}")
+
+        if len(message["errors"]) > 0:
+            logger.error("\tErrors:")
+            for error in message["errors"]:
+                logger.error(f"\t\t{error}")
+
+        print("\tResult: ", message["result"])
