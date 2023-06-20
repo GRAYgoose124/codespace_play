@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import sys
 import zmq
 
 from dizzy import ServiceManager
@@ -73,14 +74,14 @@ class SimpleCLIClient:
             new_service = input(f"Service: ({service}) ")
             service = new_service if new_service else service
 
-            new_task = input("Task: ")
+            new_task = input(f"Task: ({task}) ")
             task = new_task if new_task else "A"
 
             self.socket.send(json.dumps({"service": service, "task": task}).encode())
 
             message = json.loads(self.socket.recv().decode())
 
-            print(message)
+            print(message["result" if "result" in message else "error"])
 
 
 def server():
@@ -95,7 +96,7 @@ def server():
     try:
         server.run()
     except KeyboardInterrupt:
-        pass
+        print("Server stopped.")
 
 
 def client():
@@ -104,8 +105,20 @@ def client():
     try:
         client.run()
     except KeyboardInterrupt:
-        pass
+        print("Client stopped.")
+
+
+def main():
+    args = sys.argv[1:]
+    if len(args) == 0:
+        print("Please specify either 'server' or 'client'")
+        sys.exit(1)
+
+    if args[0] == "server":
+        server()
+    elif args[0] == "client":
+        client()
 
 
 if __name__ == "__main__":
-    pass
+    main()
