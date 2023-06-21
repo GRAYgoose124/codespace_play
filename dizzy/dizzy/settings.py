@@ -1,1 +1,0 @@
-PRUNE_MINUTES = 10

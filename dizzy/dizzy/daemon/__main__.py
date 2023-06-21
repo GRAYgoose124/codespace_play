@@ -1,21 +1,22 @@
+import argparse
 import json
 import logging
 from pathlib import Path
 import sys
-import argparse
+import zmq
 
 from . import Server, Client  # , common_services, default_entities
-from .settings import common_services, default_entities
 
 
 logging.basicConfig(level=logging.DEBUG)
 
 
-def server():
-    server = Server()
-
-    server.service_manager.load_services(common_services.values())
-    server.entity_manager.load_entities(default_entities.values())
+def server(port=5555):
+    try:
+        server = Server(port=port)
+    except zmq.error.ZMQError as e:
+        print(e)
+        sys.exit(1)
 
     try:
         server.run()
@@ -23,8 +24,8 @@ def server():
         print("Server stopped.")
 
 
-def client():
-    client = Client()
+def client(port=5555):
+    client = Client(port=port)
 
     try:
         client.run()
@@ -44,14 +45,23 @@ def main():
         default="INFO",
         help="Specify the logging level",
     )
+
+    parser.add_argument(
+        "-p",
+        "--port",
+        type=int,
+        default=5555,
+        help="Specify the port to connect to",
+    )
+
     args = parser.parse_args()
 
     logging.basicConfig(level=getattr(logging, args.verbosity))
 
     if args.mode == "server":
-        server()
+        server(port=args.port)
     elif args.mode == "client":
-        client()
+        client(port=args.port)
 
 
 if __name__ == "__main__":

@@ -14,9 +14,17 @@ Simple task runner with a focus on separated contexts and workflows execution ac
 ### Run
 
     > poetry shell
-    > dizzy
+
+then:
+
+    > dizzy     # wraps dizae (server + client) -vDEBUG
 
 or:
+
+    > dizae server -vDEBUG >/dev/null&
+    > dizae client
+
+or: (to be deprecated)
 
     > dizzy-server >/dev/null &
     > dizzy-client
@@ -75,3 +83,7 @@ This one depends on SomeOtherTask, but that's okay - define it just as simply! T
 
 ### TODO:
 - Composites: workflows on the fly with a simple DSL for result composition.
+- Datagen
+- Tests
+- 
+- Annoyingly, only dizae server/client logs right now. For some reason logfiles don't work at the right levels either.

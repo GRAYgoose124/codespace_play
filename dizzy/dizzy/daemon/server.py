@@ -3,24 +3,31 @@ import logging
 import zmq
 
 from dizzy import EntityManager
-
-logger = logging.getLogger(__name__)
+from .settings import common_services, default_entities, data_root
 
 
 class SimpleRequestServer:
-    def __init__(self):
+    def __init__(self, address="*", port=5555):
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.REP)
-        self.socket.bind("tcp://*:5555")
+        self.socket.bind(f"tcp://{address}:{port}")
+
+        self.logger = logging.getLogger(__name__)
+        fh = logging.FileHandler(data_root / "server.log")
+        fh.setLevel(logging.getLogger().level)
+        self.logger.addHandler(fh)
 
         self.entity_manager = EntityManager()
         self.service_manager = self.entity_manager.service_manager
 
+        self.service_manager.load_services(common_services.values())
+        self.entity_manager.load_entities(default_entities.values())
+
     def run(self):
-        logger.debug("Server running...")
+        self.logger.debug("Server running...")
         while True:
             message = self.socket.recv()
-            logger.debug(f"Received request: {message}")
+            self.logger.debug(f"Received request: {message}")
 
             response = {
                 "status": "incomplete",
@@ -99,5 +106,5 @@ class SimpleRequestServer:
 
     def send_response(self, response):
         out = json.dumps(response).encode()
-        logger.debug(f"Sending response: {out}")
+        self.logger.debug(f"Sending response: {out}")
         self.socket.send(out)

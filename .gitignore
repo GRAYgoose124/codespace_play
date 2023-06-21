@@ -3,6 +3,5 @@ notebooks/data
 notebooks/cifar_net.pth
 .ipynb_checkpoints/
 **/*logs/
-**/data/
 **/*.lock
 *.log

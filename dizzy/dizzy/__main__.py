@@ -1,81 +1,53 @@
 import datetime
 import logging
+import os
 from pathlib import Path
+import random
 import select
 import subprocess
 import sys
 import threading
-
-from .settings import PRUNE_MINUTES
-
-
-def prune(file: str, minutes: int) -> None:
-    """Prune a log file to only contain the last `minutes` of logs."""
-    with open(file, "r") as f:
-        lines = f.readlines()
-
-    with open(file, "w") as f:
-        for i, line in enumerate(lines):
-            if line.startswith("--- ") and line.endswith(" ---\n"):
-                date = datetime.datetime.strptime(line[4:-5], "%Y-%m-%d %H:%M:%S.%f")
-                if ((datetime.datetime.now() - date).seconds / 60) < minutes:
-                    f.writelines(lines[i:])
-                    break
+import time
 
 
-def timestamp(f) -> str:
-    f.write(f"--- {datetime.datetime.now()} ---\n")
+def run_server(port):
+    return subprocess.Popen(
+        ["dizae", "server", "-vDEBUG", f"-p{port}"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
 
 
 def main() -> None:
-    """Asimple wrapper to start `daemon.server` and `daemon.client` with logging.
+    """A simple wrapper to start `daemon.server` and `daemon.client` with logging.
 
     Please see dizzy/dizzy/daemon/__main__.py for more info.
     """
-    if len(sys.argv) == 2 and sys.argv[1].startswith("-v"):
-        client_log_flag = sys.argv[1]
-        server_log_flag = client_log_flag
-    else:
-        client_log_flag = "-vERROR"
-        server_log_flag = "-vDEBUG"
+    port = 5555
 
-    # init logfiles if needbe
-    SERVER_LOG = Path("server.log")
-    CLIENT_LOG = Path("client.log")
-    if not SERVER_LOG.exists():
-        SERVER_LOG.touch()
-    if not CLIENT_LOG.exists():
-        CLIENT_LOG.touch()
-
-    # Start the server
     print("Starting server...")
-    prune(SERVER_LOG, PRUNE_MINUTES)
-    with open(SERVER_LOG, "a+") as f:
-        timestamp(f)
+    while True:
+        process = run_server(port)
+        time.sleep(1)
+        if process.poll() is not None and process.returncode != 0:
+            print("Another server may be running...")
+            # randomize port
+            port = 5555 + random.randint(1, 1000)
+            print(f"Trying port {port}...")
+            process = run_server(port)
+        else:
+            print(f"Server started on port {port}.")
+            break
 
-        process = subprocess.Popen(
-            ["python", "-m", "dizzy.daemon", "server", server_log_flag],
-            stdout=f,
-            stderr=f,
+    print(f"Starting client on port {port}...")
+    try:
+        subprocess.run(
+            ["dizae", "client", "-vDEBUG", f"-p{port}"],
         )
-        if process.returncode != 0:
-            print(
-                "Another server may be running... Try `pkill -9 python` :skull: ... or dizzy-client if you experience bugs."
-            )
-
-    # Start the client
-    print("Starting client...")
-    prune(CLIENT_LOG, PRUNE_MINUTES)
-    with open(CLIENT_LOG, "a+") as f:
-        timestamp(f)
-
-        try:
-            subprocess.run(
-                ["python", "-m", "dizzy.daemon", "client", client_log_flag],
-                stderr=f,
-            )
-        except KeyboardInterrupt:
-            pass
+    except KeyboardInterrupt:
+        pass
+    finally:
+        process.terminate()
 
 
 if __name__ == "__main__":

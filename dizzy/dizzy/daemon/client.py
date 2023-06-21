@@ -7,14 +7,21 @@ if os.name != "nt":
     import readline
 import logging
 
-logger = logging.getLogger(__name__)
+from .settings import data_root
 
 
 class SimpleCLIClient:
-    def __init__(self):
+    def __init__(self, address="localhost", port=5555):
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.REQ)
-        self.socket.connect("tcp://localhost:5555")
+        self.socket.connect(f"tcp://{address}:{port}")
+
+        self.logger = logging.getLogger(__name__)
+        fh = logging.FileHandler(data_root / "client.log")
+        fh.setLevel(logging.getLogger().level)
+        self.logger.addHandler(fh)
+
+        self.last_request = None
 
     def run(self):
         client_ctx = {}
@@ -50,21 +57,21 @@ class SimpleCLIClient:
         self.socket.send_json(self.last_request)
 
         message = json.loads(self.socket.recv().decode())
-        logger.debug(f"Received response: {message}")
+        self.logger.debug(f"Received response: {message}")
 
         if "ctx" in message:
             client_ctx = message["ctx"]
-            logger.debug(f"\tNew context: {client_ctx}")
+            self.logger.debug(f"\tNew context: {client_ctx}")
 
         if len(message["errors"]) > 0:
-            logger.error("\tErrors:")
+            self.logger.error("\tErrors:")
             for error in message["errors"]:
                 if "Service not found" in error:
                     service = None
-                logger.error(f"\t\t{error}")
+                self.logger.error(f"\t\t{error}")
 
         if "available_services" in message:
-            logger.info(f"\tAvailable tasks: {message['available_services']}")
+            self.logger.info(f"\tAvailable tasks: {message['available_services']}")
 
         print("\tResult: ", message["result"])
 
@@ -76,15 +83,15 @@ class SimpleCLIClient:
         self.socket.send_json(self.last_request)
 
         message = json.loads(self.socket.recv().decode())
-        logger.debug(f"Received response: {message}")
+        self.logger.debug(f"Received response: {message}")
 
         if "ctx" in message:
             client_ctx = message["ctx"]
-            logger.debug(f"\tNew context: {client_ctx}")
+            self.logger.debug(f"\tNew context: {client_ctx}")
 
         if len(message["errors"]) > 0:
-            logger.error("\tErrors:")
+            self.logger.error("\tErrors:")
             for error in message["errors"]:
-                logger.error(f"\t\t{error}")
+                self.logger.error(f"\t\t{error}")
 
         print("\tResult: ", message["result"])
