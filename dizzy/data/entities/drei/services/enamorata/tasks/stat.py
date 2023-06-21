@@ -6,5 +6,5 @@ class Stat(Task):
 
     @staticmethod
     def run(ctx):
-        pass
+        return "Stat"
         # return ctx

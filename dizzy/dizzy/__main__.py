@@ -60,7 +60,7 @@ def main() -> None:
         )
         if process.returncode != 0:
             print(
-                "Another server may be running... Try dizzy-client if you experience bugs."
+                "Another server may be running... Try `pkill -9 python` :skull: ... or dizzy-client if you experience bugs."
             )
 
     # Start the client

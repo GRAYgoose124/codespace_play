@@ -6,4 +6,5 @@ class Inspect(Task):
 
     @staticmethod
     def run(ctx):
-        return ctx
+        return "Inspect"
+        # return ctx
