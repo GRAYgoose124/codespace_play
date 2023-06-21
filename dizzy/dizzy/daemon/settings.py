@@ -1,7 +1,36 @@
+""" Settings for the daemon
+
+Anything can use these, but really this is for the daemon.server. The daemon.client should pretend
+to be unaware of these settings in development. In production, the client should be
+on separate hardware from the server, only communicating via JSON-RPC.
+
+Important symbols:
+    data_root: Path
+        The root path for all daemon data
+    common_services: dict
+        A dict of all common services
+    all_entities: dict
+        A dict of all entities
+
+
+Daemon specific settings:
+    - These are configured from the `(data_root / "settings.yml")` file:
+    default_common_services: dict
+        A dict of all default common services
+    default_entities: dict
+        A dict of all default entities
+
+
+Lesser important symbols:
+    daemon_settings_file: Path
+        The path to the daemon settings file
+"""
 from pathlib import Path
 
 import yaml
 
+
+# Root path for all daemon data, todo: make this configurable/discoverable.
 data_root = Path(__file__).parent.parent.parent / "data"
 
 # Daemon settings

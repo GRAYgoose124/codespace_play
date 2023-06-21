@@ -15,5 +15,8 @@
 - entity yml
   - [ ] broadcast subservice to main controller. "fake common service"
   - [ ] save workflow or composite results to file for later use - project?
+  - [ ] service: Literal['all', 'mine'] | list[str]
+- [ ] service yml
+  - [ ] auto task discovery - tasks: Literal['all'] | list[str]
 # BUGS
-- Annoyingly, only dizae server/client logs right now. For some reason logfiles don't work at the right levels either.
+- Annoyingly, only dizae server/client logs right now. For  some reason logfiles don't work at the right levels either.

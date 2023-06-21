@@ -1,0 +1,4 @@
+service:
+  description: entserv
+  name: entity_serv
+  tasks: []

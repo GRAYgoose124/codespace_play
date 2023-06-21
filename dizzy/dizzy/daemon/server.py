@@ -36,25 +36,26 @@ class SimpleRequestServer:
                 "result": None,
                 "ctx": None,
             }
+
             try:
-                json_obj = json.loads(message)
+                request = json.loads(message)
             except json.JSONDecodeError:
                 response["errors"].append("Invalid JSON")
-                self.send_response(response)
-                continue
 
-            if "entity" in json_obj and json_obj["entity"] is not None:
-                self.handle_entity_workflow(json_obj, response)
-            elif "service" in json_obj and json_obj["service"] is not None:
-                self.handle_service_task(json_obj, response)
+            if "entity" in request and request["entity"] is not None:
+                self.handle_entity_workflow(request, response)
+            elif "service" in request and request["service"] is not None:
+                self.handle_service_task(request, response)
             else:
                 response["errors"].append("Invalid JSON")
 
-            self.send_response(response)
+            # out = json.dumps(response).encode()
+            self.logger.debug(f"Sending response: {response}")
+            self.socket.send_json(response)
 
-    def handle_entity_workflow(self, json_obj, response):
-        entity = json_obj["entity"]
-        workflow = json_obj.get("workflow", None)
+    def handle_entity_workflow(self, request, response):
+        entity = request["entity"]
+        workflow = request.get("workflow", None)
 
         if not workflow:
             response["errors"].append("Invalid JSON, no workflow")
@@ -71,16 +72,18 @@ class SimpleRequestServer:
             response["errors"].append(f"No such workflow: {e}")
 
         # response["ctx"] = ctx
-        response["ctx"] = json_obj.get("ctx", {})
-        response["workflow"] = json_obj["workflow"]
+        response["ctx"] = request.get("ctx", {})
+
+        # set
+        response["workflow"] = request["workflow"]
         response["status"] = (
-            "success" if len(response["errors"]) == 0 else "errored_complete"
+            "completed" if len(response["errors"]) == 0 else "finished_with_errors"
         )
         response["result"] = ctx["workflow"]["result"]
 
-    def handle_service_task(self, json_obj, response):
-        service = json_obj["service"]
-        task = json_obj.get("task", None)
+    def handle_service_task(self, request, response):
+        service = request["service"]
+        task = request.get("task", None)
 
         if not task:
             response["errors"].append("Invalid JSON, no task")
@@ -95,7 +98,7 @@ class SimpleRequestServer:
             self.service_manager.get_service(service).get_task_names(),
         )
 
-        ctx = json_obj.get("ctx", {})
+        ctx = request.get("ctx", {})
 
         try:
             result = self.service_manager.run_task(task, ctx)
@@ -103,8 +106,3 @@ class SimpleRequestServer:
             response["ctx"] = ctx
         except Exception as e:
             response["errors"].append(f"Error running task: {e}")
-
-    def send_response(self, response):
-        out = json.dumps(response).encode()
-        self.logger.debug(f"Sending response: {out}")
-        self.socket.send(out)

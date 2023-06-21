@@ -82,7 +82,11 @@ class SimpleCLIClient:
         self.last_request = {"entity": entity, "workflow": workflow, "ctx": client_ctx}
         self.socket.send_json(self.last_request)
 
-        message = json.loads(self.socket.recv().decode())
+        try:
+            message = json.loads(self.socket.recv().decode())
+        except (json.JSONDecodeError, UnicodeDecodeError, KeyboardInterrupt):
+            pass
+
         self.logger.debug(f"Received response: {message}")
 
         if "ctx" in message:

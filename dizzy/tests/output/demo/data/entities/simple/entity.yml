@@ -1,0 +1,8 @@
+entity:
+  description: a simple entity
+  name: simple
+  services:
+  - entity_serv
+  - basic
+  workflows:
+    work: T1 -> S1
