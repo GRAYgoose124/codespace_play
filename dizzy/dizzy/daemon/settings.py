@@ -7,7 +7,7 @@ common_service_dir = data_root / "common_services"
 entities_dir = data_root / "entities"
 
 default_common_services = ["uno"]
-default_entities = ["einz"]
+default_entities = ["einz", "zwei", "drei"]
 
 
 _default_service_files = [

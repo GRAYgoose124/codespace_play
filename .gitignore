@@ -5,3 +5,4 @@ notebooks/cifar_net.pth
 **/*logs/
 **/data/
 **/*.lock
+*.log

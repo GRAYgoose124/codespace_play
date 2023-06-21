@@ -3,7 +3,9 @@
 
 Simple task runner with a focus on separated contexts and workflows execution across JSON-RPC.
 
-> Windows bug: `dizzy` does not print input prompts. Use `dizzy-server` and `dizzy-client` instead. Will break your pipes, will need taskkill - just install Linux, please.
+> Windows bug: `dizzy` does not print input prompts. Use `dizzy-server` and `dizzy-client` instead. Will break your pipes, will need taskkil~l - just install Linux, please. 
+> 
+> "Look man, I don't use Winderz, `taskkill /F /IM python.exe` is a solution, not a problem." - Quack
 
 ### Install
 

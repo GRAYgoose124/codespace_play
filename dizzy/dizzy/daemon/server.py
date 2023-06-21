@@ -58,11 +58,17 @@ class SimpleRequestServer:
             return
 
         response["entity"] = entity
-        ctx = self.entity_manager.get_entity(entity).run_workflow(workflow)
+        try:
+            ctx = self.entity_manager.get_entity(entity).run_workflow(workflow)
+        except KeyError as e:
+            response["errors"].append(f"No such workflow: {e}")
+
         # response["ctx"] = ctx
         response["ctx"] = json_obj.get("ctx", {})
         response["workflow"] = json_obj["workflow"]
-        response["status"] = "success"
+        response["status"] = (
+            "success" if len(response["errors"]) == 0 else "errored_complete"
+        )
         response["result"] = ctx["workflow"]["result"]
 
     def handle_service_task(self, json_obj, response):

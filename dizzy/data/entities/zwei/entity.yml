@@ -1,0 +1,6 @@
+entity:
+  name: zwei
+  description: Connecting data with love.
+  services: ["uno", "extrinsic", "impact"]
+  workflows:
+    love: "A -> Store -> FindOut"

@@ -1,0 +1,4 @@
+service:
+  description: We love you, give the bitstream a hug.
+  name: extrinsic
+  tasks: ["Store"]

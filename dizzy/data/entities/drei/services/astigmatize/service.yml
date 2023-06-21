@@ -1,0 +1,4 @@
+service:
+  description: I don't see you so well, come here.
+  name: astigmatize
+  tasks: ["Inspect"]
