@@ -12,9 +12,16 @@ class Settings:
     default_entities: dict
 
 
+@dataclass
+class MetaSettings:
+    entities_dir: Path
+    common_services_dir: Path
+
+
 class SettingsManager:
     _instance = None
     settings: Settings
+    meta: MetaSettings
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -68,12 +75,17 @@ class SettingsManager:
             default_entities,
         )
 
-        return self.settings
+        self.meta = MetaSettings(entities_dir, common_service_dir)
 
     def get_settings(self):
         if not hasattr(self, "settings") or not self.settings:
             self.load_settings()
         return self.settings
+
+    def get_meta_settings(self):
+        if not hasattr(self, "meta") or not self.meta:
+            self.load_settings()
+        return self.meta
 
     @staticmethod
     def default():

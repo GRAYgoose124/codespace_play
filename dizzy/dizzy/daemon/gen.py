@@ -1,32 +1,17 @@
 from pathlib import Path
+import shutil
 import textwrap
 import click
-
-from dizzy import Service, Entity
 import yaml
 
-# GENERATE an arbitrary data directory structure entities have services, services have tasks folder.
-# WEe call services in entities, entity services.
-# data/
-# ├── common_services
-# │   ├── service1
-# │   │   ├── service.yml
-# │   │   └── tasks
-# │   │       └── othertasks.py
-# │   └── service2
-# │       ├── service.yml
-# │       └── tasks
-# │           └── sometasks.py
-# └── entities
-#     ├── entity1
-#     │   ├── entity.yml
-#     │   └── services
-#     └── entity2
-#         ├── entity.yml
-#         └── services
+from dizzy import Service, Entity
 
 
 def generate_skeleton_settings(path: str):
+    """Generate a skeleton settings file.
+
+    See dizzy/daemon/settings.py for the schema. TODO: tighter coupling.
+    """
     path = Path(path)
     settings_file = path / "settings.yml"
     settings_file.touch()
@@ -53,9 +38,11 @@ def generate_skeleton_task(
     """Unlike entity and service, task is just a raw python file"""
     path = Path(path)
 
+    task_name = name.capitalize()
+
     task_template = textwrap.dedent(
         f"""
-        class TaskName(Task):
+        class {task_name}(Task):
             \"\"\"Description\"\"\"
             dependencies = {dependencies}
             @staticmethod
@@ -110,7 +97,7 @@ def generate_skeleton_entity(
     name: str,
     path: str,
     description: str,
-    services: list[str],
+    services: dict[str, list[str]],
     common: list[str],
     workflows: dict[str, str],
 ):
@@ -123,19 +110,19 @@ def generate_skeleton_entity(
     Entity(
         name=name,
         description=description,
-        services=services + common,
+        services=list(services.keys()) + common,
         workflows=workflows,
     ).save_to_yaml(entity_yml)
 
     services_dir = entity_dir / "services"
     services_dir.mkdir(parents=True, exist_ok=True)
 
-    for service in services:
-        # TODO: add tasks to service
-        generate_skeleton_service(service, services_dir, "entserv", [])
+    for service, tasks in services.items():
+        generate_skeleton_service(service, services_dir, "entserv", tasks)
 
 
 def generate_data_dir(path: str, demo: bool = False):
+    """Coupled with daemon.settings.Settings."""
     path = Path(path)
 
     data_root = path / "data"
@@ -155,7 +142,7 @@ def generate_data_dir(path: str, demo: bool = False):
             "simple",
             entities,
             "a simple entity",
-            ["entity_serv"],
+            {"entity_serv": ["task1", "task2"]},
             ["basic"],
             {"work": "T1 -> S1"},
         )
@@ -192,8 +179,12 @@ def task(name, dependencies, inputs, outputs):
 
 
 @dizgen.command()
-def demo():
-    generate_data_dir(".", demo=True)
+@click.option("--delete", "-d", is_flag=True)
+def demo(delete):
+    if delete:
+        shutil.rmtree("./tests/demo")
+    else:
+        generate_data_dir("./tests/demo", demo=True)
 
 
 def main():
