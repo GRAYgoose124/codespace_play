@@ -4,3 +4,4 @@ entity:
   services: ["uno", "dos"]
   workflows:
     c_and_d: "C -> D"
+    einzy: "A -> EinzyB -> D"

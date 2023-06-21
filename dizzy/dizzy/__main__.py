@@ -63,10 +63,13 @@ def main() -> None:
     with open(CLIENT_LOG, "a+") as f:
         timestamp(f)
 
-        process = subprocess.run(
-            ["python", "-m", "dizzy.daemon", "client", client_log_flag],
-            stderr=f,
-        )
+        try:
+            subprocess.run(
+                ["python", "-m", "dizzy.daemon", "client", client_log_flag],
+                stderr=f,
+            )
+        except KeyboardInterrupt:
+            pass
 
 
 if __name__ == "__main__":

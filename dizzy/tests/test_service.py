@@ -2,15 +2,15 @@ import pytest
 from pathlib import Path
 
 from dizzy import ServiceManager
-from dizzy.daemon.settings import default_services
+from dizzy.daemon.settings import common_services
 
 
 class TestServiceManager:
     def setup_method(self):
         self.man = ServiceManager()
-        self.man.load_services(default_services.values())
+        self.man.load_services(common_services.values())
 
-        print(default_services, self.man.services.values())
+        print(common_services, self.man.services.values())
 
     def test_ServiceManager(self):
         assert self.man.get_service("uno").get_task("D").run({}) == "D"

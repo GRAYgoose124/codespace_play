@@ -22,7 +22,13 @@ class SimpleRequestServer:
             message = self.socket.recv()
             logger.debug(f"Received request: {message}")
 
-            response = {"errors": [], "info": [], "result": None, "ctx": None}
+            response = {
+                "status": "incomplete",
+                "errors": [],
+                "info": [],
+                "result": None,
+                "ctx": None,
+            }
             try:
                 json_obj = json.loads(message)
             except json.JSONDecodeError:
@@ -51,13 +57,12 @@ class SimpleRequestServer:
             response["errors"].append("Entity not found")
             return
 
-        response["info"].append(f"Using entity {entity}")
+        response["entity"] = entity
         ctx = self.entity_manager.get_entity(entity).run_workflow(workflow)
         # response["ctx"] = ctx
-        # response["completed_workflow"] = workflow
-        # response["result"] = ctx["workflow"]["result"]
         response["ctx"] = json_obj.get("ctx", {})
-        response["completed_workflow"] = json_obj["workflow"]
+        response["workflow"] = json_obj["workflow"]
+        response["status"] = "success"
         response["result"] = ctx["workflow"]["result"]
 
     def handle_service_task(self, json_obj, response):

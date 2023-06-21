@@ -4,14 +4,17 @@ from pathlib import Path
 import sys
 import argparse
 
-from . import Server, Client
-from .settings import default_services, default_entities
+from . import Server, Client  # , common_services, default_entities
+from .settings import common_services, default_entities
+
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 def server():
     server = Server()
 
-    server.service_manager.load_services(default_services.values())
+    server.service_manager.load_services(common_services.values())
     server.entity_manager.load_entities(default_entities.values())
 
     try:

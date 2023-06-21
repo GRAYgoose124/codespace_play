@@ -41,7 +41,6 @@ class Entity:
     def service_manager(self) -> ServiceManager:
         if self.__service_manager is None:
             self.__service_manager = ServiceManager()
-            logger.debug(f"Created new service manager {self.__service_manager}")
         return self.__service_manager
 
     def get_service_files(self) -> list[Path]:

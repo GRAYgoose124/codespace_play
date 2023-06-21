@@ -16,16 +16,22 @@ class SimpleCLIClient:
         client_ctx = {}
 
         while True:
-            command = input("Enter a command (task/workflow/context/clear/exit): ")
-            if command == "task":
+            command = input("Enter a command (ts/wf/cl/cx/redo/exit): ")
+            if command == "ts":
                 self.request_task(client_ctx)
-            elif command == "workflow":
+            elif command == "wf":
                 self.request_workflow(client_ctx)
-            elif command == "clear":
+            elif command == "cl":
                 client_ctx = {}
                 print("Context cleared.")
-            elif command == "context":
+            elif command == "cx":
                 print(f"Context: {client_ctx}")
+            elif command == "redo" or command == "" and self.last_request is not None:
+                self.socket.send_json(self.last_request)
+                print(f"Sent: {self.last_request}")
+
+                message = json.loads(self.socket.recv().decode())
+                print(f"Received: {message}")
             elif command == "exit":
                 break
             else:
@@ -35,7 +41,9 @@ class SimpleCLIClient:
         service = input("Enter the common service: ")
         task = input("Enter the task: ")
 
-        self.socket.send_json({"service": service, "task": task, "ctx": client_ctx})
+        self.last_request = {"service": service, "task": task, "ctx": client_ctx}
+
+        self.socket.send_json(self.last_request)
 
         message = json.loads(self.socket.recv().decode())
         logger.debug(f"Received response: {message}")
@@ -60,9 +68,8 @@ class SimpleCLIClient:
         entity = input("Enter the entity: ")
         workflow = input("Enter the workflow: ")
 
-        self.socket.send_json(
-            {"entity": entity, "workflow": workflow, "ctx": client_ctx}
-        )
+        self.last_request = {"entity": entity, "workflow": workflow, "ctx": client_ctx}
+        self.socket.send_json(self.last_request)
 
         message = json.loads(self.socket.recv().decode())
         logger.debug(f"Received response: {message}")

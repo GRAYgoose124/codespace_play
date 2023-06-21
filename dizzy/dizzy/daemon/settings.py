@@ -6,14 +6,16 @@ data_root = Path(__file__).parent.parent.parent / "data"
 common_service_dir = data_root / "common_services"
 entities_dir = data_root / "entities"
 
-default_services = ["uno"]
+default_common_services = ["uno"]
 default_entities = ["einz"]
 
 
 _default_service_files = [
-    common_service_dir / s / "service.yml" for s in default_services
+    common_service_dir / s / "service.yml" for s in default_common_services
 ]
-default_services = {s: f for s, f in zip(default_services, _default_service_files)}
+common_services = {
+    s: f for s, f in zip(default_common_services, _default_service_files)
+}
 
 # Entities which can be loaded by the daemon (through an EntityLoader)
 _entity_dirs = [e.name for e in entities_dir.iterdir() if e.is_dir()]
