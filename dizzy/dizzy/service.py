@@ -6,7 +6,7 @@ import importlib
 import logging
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 
 
 logger = logging.getLogger(__name__)
@@ -76,6 +76,17 @@ class Service:
             logger.debug(f"Loaded service {S.name} with tasks {S.tasks}")
             return S
 
+    def save_to_yaml(self, service: Path = None):
+        if service is None:
+            if self.__task_root is None:
+                raise ValueError("No services root set, cannot save entity.")
+            service = self.__task_root.parent / "service.yml"
+        else:
+            self.__task_root = service.parent / "tasks"
+
+        with open(service, "w") as f:
+            yaml.safe_dump({"service": asdict(self)}, f)
+
     def get_task(self, name: str) -> Task:
         if name not in self.__loaded_tasks:
             if name in self.tasks:
@@ -99,7 +110,7 @@ class ServiceManager:
         for service in services:
             S = Service.load_from_yaml(service)
             self.services[S.name] = S
-            logger.debug(f"Loaded service {S.name}")
+        logger.debug(f"SM: Loaded services {self.services}.")
 
     def find_owner_service(self, task: str) -> Optional[Service]:
         for service in self.services.values():

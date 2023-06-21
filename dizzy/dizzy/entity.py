@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 import logging
 from pathlib import Path
 from typing import Optional
@@ -37,6 +37,17 @@ class Entity:
             logger.debug(f"Loaded entity {E.name}")
             return E
 
+    def save_to_yaml(self, entity: Path = None):
+        if entity is None:
+            if self.__services_root is None:
+                raise ValueError("No services root set, cannot save entity.")
+            entity = self.__services_root.parent / "entity.yml"
+        else:
+            self.__services_root = entity.parent / "services"
+
+        with open(entity, "w") as f:
+            yaml.safe_dump({"entity": asdict(self)}, f)
+
     @property
     def service_manager(self) -> ServiceManager:
         if self.__service_manager is None:
@@ -60,14 +71,14 @@ class Entity:
         """A workflow is a set of non-dependent tasks made dependent by the workflow."""
         logger.debug(f"Running workflow {workflow} for entity {self.name}")
 
-        ctx = {"workflow": {"input": None, "result": {}}}
+        ctx = {"workflow": {"input": {}, "result": {}}}
         # parse workflow
         wf = self.workflows[workflow]
         tasks = wf.replace(" ", "").split("->")
 
         for i, task in enumerate(tasks):
             if tasks[i - 1] in ctx["workflow"]["result"]:
-                ctx["workflow"]["input"] = ctx["workflow"]["result"][tasks[i - 1]]
+                ctx["workflow"]["input"][task] = ctx["workflow"]["result"][tasks[i - 1]]
 
             ctx["workflow"]["result"][task] = self.service_manager.run_task(task, ctx)
 

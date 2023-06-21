@@ -1,7 +1,7 @@
 import pytest
 from pathlib import Path
 
-from dizzy import ServiceManager
+from dizzy import ServiceManager, Service
 from dizzy.daemon.settings import common_services
 
 
@@ -30,3 +30,22 @@ class TestServiceManager:
         tasklist = self.man.resolve_task_dependencies("C")
         self.man.run_tasklist(tasklist, ctx)
         assert ctx == {"A": "A", "B": "AB", "C": "C"}
+
+
+class TestService:
+    def setup_method(self):
+        self.test_path = Path("test.yaml")
+        self.test_path.touch()
+
+        self.service = Service.load_from_yaml(common_services["uno"])
+
+    def teardown_method(self):
+        self.test_path.unlink()
+
+    def test_Service_dump(self):
+        self.service.save_to_yaml(self.test_path)
+
+        test_S = Service.load_from_yaml(self.test_path)
+        assert self.test_path.exists()
+        assert test_S.name == "uno"
+        assert not hasattr(test_S, "__task_root")
