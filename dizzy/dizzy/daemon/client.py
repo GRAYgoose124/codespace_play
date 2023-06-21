@@ -16,10 +16,11 @@ class SimpleCLIClient:
         self.socket = self.context.socket(zmq.REQ)
         self.socket.connect(f"tcp://{address}:{port}")
 
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger().getChild(__name__)
         fh = logging.FileHandler(data_root / "client.log")
         fh.setLevel(logging.getLogger().level)
-        self.logger.addHandler(fh)
+        fh.setFormatter(logging.Formatter("%(name)s\t| %(message)s"))
+        logging.getLogger().addHandler(fh)
 
         self.last_request = None
 

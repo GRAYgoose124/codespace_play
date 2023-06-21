@@ -12,10 +12,11 @@ class SimpleRequestServer:
         self.socket = self.context.socket(zmq.REP)
         self.socket.bind(f"tcp://{address}:{port}")
 
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger().getChild(__name__)
         fh = logging.FileHandler(data_root / "server.log")
         fh.setLevel(logging.getLogger().level)
-        self.logger.addHandler(fh)
+        fh.setFormatter(logging.Formatter("%(name)s\t| %(message)s"))
+        logging.getLogger().addHandler(fh)
 
         self.entity_manager = EntityManager()
         self.service_manager = self.entity_manager.service_manager
