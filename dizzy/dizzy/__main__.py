@@ -48,17 +48,23 @@ def main() -> None:
         CLIENT_LOG.touch()
 
     # Start the server
+    print("Starting server...")
     prune(SERVER_LOG, PRUNE_MINUTES)
     with open(SERVER_LOG, "a+") as f:
         timestamp(f)
 
-        subprocess.Popen(
+        process = subprocess.Popen(
             ["python", "-m", "dizzy.daemon", "server", server_log_flag],
             stdout=f,
             stderr=f,
         )
+        if process.returncode != 0:
+            print(
+                "Another server may be running... Try dizzy-client if you experience bugs."
+            )
 
     # Start the client
+    print("Starting client...")
     prune(CLIENT_LOG, PRUNE_MINUTES)
     with open(CLIENT_LOG, "a+") as f:
         timestamp(f)

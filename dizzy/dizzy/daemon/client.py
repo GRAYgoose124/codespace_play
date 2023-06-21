@@ -1,6 +1,10 @@
+import sys
 import zmq
 import json
-import readline
+import os
+
+if os.name != "nt":
+    import readline
 import logging
 
 logger = logging.getLogger(__name__)

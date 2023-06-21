@@ -1,0 +1,30 @@
+--- 2023-06-20 20:50:47.718016 ---
+Enter a command (ts/wf/cl/cx/redo/exit): Enter a command (ts/wf/cl/cx/redo/exit): Enter a command (ts/wf/cl/cx/redo/exit): Traceback (most recent call last):
+  File "B:\Anaconda\lib\runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "B:\Anaconda\lib\runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "B:\documents\coding\github\codespace_play\dizzy\dizzy\daemon\__main__.py", line 58, in <module>
+    main()
+  File "B:\documents\coding\github\codespace_play\dizzy\dizzy\daemon\__main__.py", line 54, in main
+    client()
+  File "B:\documents\coding\github\codespace_play\dizzy\dizzy\daemon\__main__.py", line 30, in client
+    client.run()
+  File "B:\documents\coding\github\codespace_play\dizzy\dizzy\daemon\client.py", line 32, in run
+    elif command == "redo" or command == "" and self.last_request is not None:
+AttributeError: 'SimpleCLIClient' object has no attribute 'last_request'
+--- 2023-06-20 20:51:25.423908 ---
+Enter a command (ts/wf/cl/cx/redo/exit): Enter the entity: Enter the workflow: DEBUG:dizzy.daemon.client:Received response: {'status': 'success', 'errors': [], 'info': [], 'result': {'A': 'A', 'EinzyB': 'AB', 'D': 'D'}, 'ctx': {}, 'entity': 'einz', 'workflow': 'einzy'}
+DEBUG:dizzy.daemon.client:	New context: {}
+Enter a command (ts/wf/cl/cx/redo/exit): --- 2023-06-20 20:51:38.996525 ---
+Enter a command (ts/wf/cl/cx/redo/exit): --- 2023-06-20 20:52:12.486157 ---
+Enter a command (ts/wf/cl/cx/redo/exit): --- 2023-06-20 20:54:16.338595 ---
+Enter a command (ts/wf/cl/cx/redo/exit): Enter the entity: Enter the workflow: DEBUG:dizzy.daemon.client:Received response: {'status': 'success', 'errors': [], 'info': [], 'result': {'A': 'A', 'EinzyB': 'AB', 'D': 'D'}, 'ctx': {}, 'entity': 'einz', 'workflow': 'einzy'}
+DEBUG:dizzy.daemon.client:	New context: {}
+Enter a command (ts/wf/cl/cx/redo/exit): Enter a command (ts/wf/cl/cx/redo/exit): Enter a command (ts/wf/cl/cx/redo/exit): Enter a command (ts/wf/cl/cx/redo/exit): Enter a command (ts/wf/cl/cx/redo/exit): Enter a command (ts/wf/cl/cx/redo/exit): Enter a command (ts/wf/cl/cx/redo/exit): Enter a command (ts/wf/cl/cx/redo/exit): --- 2023-06-20 20:57:14.639502 ---
+Enter a command (ts/wf/cl/cx/redo/exit): Enter the entity: Enter the workflow: DEBUG:dizzy.daemon.client:Received response: {'status': 'success', 'errors': [], 'info': [], 'result': {'A': 'A', 'EinzyB': 'AB', 'D': 'D'}, 'ctx': {}, 'entity': 'einz', 'workflow': 'einzy'}
+DEBUG:dizzy.daemon.client:	New context: {}
+Enter a command (ts/wf/cl/cx/redo/exit): Enter a command (ts/wf/cl/cx/redo/exit): Enter a command (ts/wf/cl/cx/redo/exit): Enter a command (ts/wf/cl/cx/redo/exit): --- 2023-06-20 20:58:09.557738 ---
+Enter a command (ts/wf/cl/cx/redo/exit): Enter the entity: Enter the workflow: DEBUG:dizzy.daemon.client:Received response: {'status': 'success', 'errors': [], 'info': [], 'result': {'A': 'A', 'EinzyB': 'AB', 'D': 'D'}, 'ctx': {}, 'entity': 'einz', 'workflow': 'einzy'}
+DEBUG:dizzy.daemon.client:	New context: {}
+Enter a command (ts/wf/cl/cx/redo/exit): Enter a command (ts/wf/cl/cx/redo/exit): Enter a command (ts/wf/cl/cx/redo/exit): Enter a command (ts/wf/cl/cx/redo/exit): --- 2023-06-20 20:59:54.591434 ---

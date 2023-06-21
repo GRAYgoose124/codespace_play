@@ -163,18 +163,3 @@ class ServiceManager:
 
         tasklist = self.resolve_task_dependencies(task)
         return self.run_tasklist(tasklist, ctx)
-
-    def run_subflow(self, subflow: list[str] | str, ctx: dict) -> dict:
-        """Run a workflow in a context"""
-        logger.debug(f"Running {subflow=}")
-
-        if isinstance(subflow, str):
-            subflow = subflow.split("->")
-
-        if ctx is None:
-            ctx = {}
-
-        for task in subflow:
-            result = self.run_task(task, ctx)
-
-        return result, ctx
