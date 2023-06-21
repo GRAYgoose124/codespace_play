@@ -1,4 +1,5 @@
 from pathlib import Path
+import shutil
 import textwrap
 import click
 
@@ -53,9 +54,11 @@ def generate_skeleton_task(
     """Unlike entity and service, task is just a raw python file"""
     path = Path(path)
 
+    task_name = name.capitalize()
+
     task_template = textwrap.dedent(
         f"""
-        class TaskName(Task):
+        class {task_name}(Task):
             \"\"\"Description\"\"\"
             dependencies = {dependencies}
             @staticmethod
@@ -110,7 +113,7 @@ def generate_skeleton_entity(
     name: str,
     path: str,
     description: str,
-    services: list[str],
+    services: dict[str, list[str]],
     common: list[str],
     workflows: dict[str, str],
 ):
@@ -123,16 +126,15 @@ def generate_skeleton_entity(
     Entity(
         name=name,
         description=description,
-        services=services + common,
+        services=list(services.keys()) + common,
         workflows=workflows,
     ).save_to_yaml(entity_yml)
 
     services_dir = entity_dir / "services"
     services_dir.mkdir(parents=True, exist_ok=True)
 
-    for service in services:
-        # TODO: add tasks to service
-        generate_skeleton_service(service, services_dir, "entserv", [])
+    for service, tasks in services.items():
+        generate_skeleton_service(service, services_dir, "entserv", tasks)
 
 
 def generate_data_dir(path: str, demo: bool = False):
@@ -155,7 +157,7 @@ def generate_data_dir(path: str, demo: bool = False):
             "simple",
             entities,
             "a simple entity",
-            ["entity_serv"],
+            {"entity_serv": ["task1", "task2"]},
             ["basic"],
             {"work": "T1 -> S1"},
         )
@@ -192,8 +194,12 @@ def task(name, dependencies, inputs, outputs):
 
 
 @dizgen.command()
-def demo():
-    generate_data_dir(".", demo=True)
+@click.option("--delete", "-d", is_flag=True)
+def demo(delete):
+    if delete:
+        shutil.rmtree("./tests/demo")
+    else:
+        generate_data_dir("./tests/demo", demo=True)
 
 
 def main():

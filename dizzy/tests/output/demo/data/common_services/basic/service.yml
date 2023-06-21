@@ -1,7 +1,0 @@
-service:
-  description: a basic task
-  name: basic
-  tasks:
-  - T1
-  - T2
-  - T3

@@ -1,77 +1,105 @@
-""" Settings for the daemon
-
-Anything can use these, but really this is for the daemon.server. The daemon.client should pretend
-to be unaware of these settings in development. In production, the client should be
-on separate hardware from the server, only communicating via JSON-RPC.
-
-Important symbols:
-    data_root: Path
-        The root path for all daemon data
-    common_services: dict
-        A dict of all common services
-    all_entities: dict
-        A dict of all entities
-
-
-Daemon specific settings:
-    - These are configured from the `(data_root / "settings.yml")` file:
-    default_common_services: dict
-        A dict of all default common services
-    default_entities: dict
-        A dict of all default entities
-
-
-Lesser important symbols:
-    daemon_settings_file: Path
-        The path to the daemon settings file
-"""
 from pathlib import Path
-
+from dataclasses import dataclass, fields
 import yaml
 
 
-# Root path for all daemon data, todo: make this configurable/discoverable.
-data_root = Path(__file__).parent.parent.parent / "data"
-
-# Daemon settings
-daemon_settings_file = data_root / "settings.yml"
-
-# Common services and tasks
-common_service_dir = data_root / "common_services"
-entities_dir = data_root / "entities"
-
-with open(daemon_settings_file, "r") as f:
-    settings = yaml.safe_load(f)["settings"]
-    default_common_services = settings["common_services"]
-    default_entities = settings["entities"]
-
-    _all_common_service_files = [
-        common_service_dir / s / "service.yml"
-        for s in common_service_dir.iterdir()
-        if s.is_dir()
-    ]
-
-    _all_entity_files = [
-        entities_dir / e / "entity.yml" for e in entities_dir.iterdir() if e.is_dir()
-    ]
-
-all_common_services = {
-    s.name: f for s, f in zip(common_service_dir.iterdir(), _all_common_service_files)
-}
-common_services = {
-    s: f for s, f in all_common_services.items() if s in default_common_services
-}
+@dataclass
+class Settings:
+    data_root: Path
+    all_common_services: dict
+    all_entities: dict
+    common_services: dict
+    default_entities: dict
 
 
-all_entities = {e.name: f for e, f in zip(entities_dir.iterdir(), _all_entity_files)}
-default_entities = {e: f for e, f in all_entities.items() if e in default_entities}
+class SettingsManager:
+    _instance = None
+    settings: Settings
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(SettingsManager, cls).__new__(cls)
+
+        return cls._instance
+
+    def load_settings(self) -> Settings:
+        data_root = Path(__file__).parent.parent.parent / "data"
+        daemon_settings_file = data_root / "settings.yml"
+        common_service_dir = data_root / "common_services"
+        entities_dir = data_root / "entities"
+
+        with open(daemon_settings_file, "r") as f:
+            settings = yaml.safe_load(f)["settings"]
+            default_common_services = settings["common_services"]
+            default_entities = settings["entities"]
+
+            _all_common_service_files = [
+                common_service_dir / s / "service.yml"
+                for s in common_service_dir.iterdir()
+                if s.is_dir()
+            ]
+
+            _all_entity_files = [
+                entities_dir / e / "entity.yml"
+                for e in entities_dir.iterdir()
+                if e.is_dir()
+            ]
+
+        all_common_services = {
+            s.name: f
+            for s, f in zip(common_service_dir.iterdir(), _all_common_service_files)
+        }
+        common_services = {
+            s: f for s, f in all_common_services.items() if s in default_common_services
+        }
+
+        all_entities = {
+            e.name: f for e, f in zip(entities_dir.iterdir(), _all_entity_files)
+        }
+        default_entities = {
+            e: f for e, f in all_entities.items() if e in default_entities
+        }
+
+        self.settings = Settings(
+            data_root,
+            all_common_services,
+            all_entities,
+            common_services,
+            default_entities,
+        )
+
+        return self.settings
+
+    def get_settings(self):
+        if not hasattr(self, "settings") or not self.settings:
+            self.load_settings()
+        return self.settings
+
+    @staticmethod
+    def default():
+        root = Path(__file__).parent.parent.parent / "data"
+        return Settings(
+            root,
+            {},
+            {},
+            {},
+            {},
+        )
+
+    def inject(self, globals):
+        """Injects settings into the global namespace provided - pass `globals()`."""
+        # globals.update(self.get_settings().__dict__)
+        globals.update(
+            {
+                k: v
+                for k, v in self.get_settings().__dict__.items()
+                if k in [f.name for f in fields(Settings)]
+            }
+        )
+
+        if "__all__" not in globals:
+            globals["__all__"] = []
+        globals["__all__"].extend(self.get_settings().__dict__.keys())
 
 
-__all__ = [
-    "data_root",
-    "daemon_settings_file",
-    "all_common_services",
-    "all_entities",
-    "common_services",
-    "default_entities",
-]
+SettingsManager().inject(globals())
