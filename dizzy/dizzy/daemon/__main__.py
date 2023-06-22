@@ -5,10 +5,7 @@ from pathlib import Path
 import sys
 import zmq
 
-from . import Server, Client  # , common_services, default_entities
-
-
-logging.basicConfig(level=logging.DEBUG)
+from . import Server, Client, data_root
 
 
 def server(port=5555):
@@ -31,6 +28,13 @@ def client(port=5555):
         client.run()
     except KeyboardInterrupt:
         print("Client stopped.")
+
+
+def add_file_handler(filename):
+    fh = logging.FileHandler(filename)
+    fh.setLevel(logging.getLogger().level)
+    fh.setFormatter(logging.Formatter("%(name)s\t| %(message)s"))
+    logging.getLogger().addHandler(fh)
 
 
 def main():
@@ -59,8 +63,10 @@ def main():
     logging.basicConfig(level=getattr(logging, args.verbosity))
 
     if args.mode == "server":
+        add_file_handler(data_root / "server.log")
         server(port=args.port)
     elif args.mode == "client":
+        add_file_handler(data_root / "client.log")
         client(port=args.port)
 
 
