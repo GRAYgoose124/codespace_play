@@ -1,4 +1,0 @@
-service:
-  description: The Numero Dos service.
-  name: dos
-  tasks: ["EinzyA", "EinzyB"]

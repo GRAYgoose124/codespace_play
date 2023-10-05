@@ -1,3 +1,0 @@
-settings:
-  common_services: ["uno"]
-  entities: ["einz", "zwei", "drei"]

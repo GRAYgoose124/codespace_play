@@ -1,0 +1,13 @@
+max-prompt-length: 100
+max-tokens: 750
+messages:
+- content: hi
+  role: user
+- content: Hello! How can I assist you today?
+  role: assistant
+model: gpt-3.5-turbo
+save-path: /home/grayson/Documents/coding/python/codespace_play/geecli/data
+title: Conversation
+token-limit: 100000
+total-tokens-used: 17
+user-prompts-only: false

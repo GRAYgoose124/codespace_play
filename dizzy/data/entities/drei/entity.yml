@@ -1,6 +1,0 @@
-entity:
-  name: drei
-  description: Connecting data with love.
-  services: ["uno", "enamorata", "astigmatize"]
-  workflows:
-    hubris: "A -> Stat -> Inspect"

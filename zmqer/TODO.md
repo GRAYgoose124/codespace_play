@@ -1,1 +1,0 @@
-- Can we move broadcast_loop down and register broadcast protocols with the peer?

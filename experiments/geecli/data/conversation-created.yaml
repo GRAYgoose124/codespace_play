@@ -1,0 +1,201 @@
+max-tokens: 500
+message-limit: 10
+messages:
+- content: You will now be a dungeon master for text game. I will use DEBUG mode to
+    update your behaviour and STORY mode to update story elements. DEBUG mode shouldn't
+    be used for obvious cheating. Start the story.
+  role: system
+- content: I turn a corner
+  role: user
+- content: As you turn the corner, you find yourself standing at a fork in the path.
+    You can either choose to go right or left. Which way do you choose?
+  role: assistant
+- content: left
+  role: user
+- content: You start walking towards the left path. After a few steps, you come across
+    a room. The room is very dimly lit, and you can make out the shapes of a few objects
+    scattered around the room. You also notice that there is a figure standing in
+    the middle of the room. As you approach the figure, you realize that it is a person,
+    but they are wearing a dark cloak that conceals their face. The person speaks
+    to you in a low, raspy voice, "Who dares to enter my domain?" What do you do?
+  role: assistant
+- content: contx
+  role: user
+- content: The figure takes a step closer towards you, their face still obscured by
+    the hood of their cloak. You notice that they are holding a small, rusted dagger
+    in their hand. The figure repeats their question, "I said, who dares to enter
+    my domain?"
+  role: assistant
+- content: I, Grayson - have cometh to slay upon ye
+  role: user
+- content: Upon hearing your words, the figure bursts into laughter. "You think you
+    can slay me? You are nothing but a mere mortal. I am a powerful sorcerer, and
+    I have been hiding in this dungeon for centuries. But if you want to try your
+    luck, then let's fight." The sorcerer drops the cloak, revealing his aged face
+    with long white hair and a long beard. He raises his dagger ready for the fight.
+    What do you do?
+  role: assistant
+- content: I reach into space time with my third eye, for I understand neuroscience
+    and quantum mechanics. he cannot unsee what he will about to see coming.
+  role: user
+- content: Your attempt to use your knowledge of neuroscience and quantum mechanics
+    to reach into space time is impressive, but unfortunately, there is no immediate
+    response. The sorcerer continues to wait for your move, ignoring your attempt.
+    What action do you take?
+  role: assistant
+- content: This is no matter, sometimes these things take a moment... Allow me to
+    bend the spoon, ever so promptly.
+  role: user
+- content: As you focus on bending the spoon, the sorcerer takes a step closer to
+    you and swings his dagger towards your chest. Without warning, you feel a sudden
+    surge of pain as the dagger penetrates your skin. You take 10 points of damage.
+    The sorcerer cackles, "You are weak and foolish to think you could defeat me with
+    parlor tricks." The sorcerer raises his dagger again, ready to strike you down.
+    What do you do?
+  role: assistant
+- content: Argh. I will not give in. I throw a strong delusion blast at him...
+  role: user
+- content: Argh. I will not give in. I throw a strong delusion blast at him...
+  role: user
+- content: 'You gather all your mental strength and unleash a powerful delusion blast
+    towards the sorcerer. The sorcerer''s eyes widen as he feels the effects of the
+    blast. Suddenly, he starts seeing things that are not there. He starts shaking
+    his head and screams in confusion, dropping his dagger on the floor.
+
+
+    The room starts spinning. After a few seconds, you feel dizzy, and your vision
+    starts to blur. You realize that your delusion blast has affected you as well.
+    The sorcerer has collapsed on the floor, and you feel the need to get out of the
+    room as quickly as possible before anything else happens. What do you do?'
+  role: assistant
+- content: I stay to finish him off, I have spent many years creating these delusions
+    through primary perception. It is heavy, but not impossible.
+  role: user
+- content: 'As you focus your mental powers to finish off the sorcerer, you feel a
+    sudden rush of energy flowing through your body. Your delusion blast becomes more
+    intense, and the sorcerer writhes on the ground as he struggles to resist the
+    illusions. You can see the fear in his eyes as he realizes that he is no match
+    for your mental abilities.
+
+
+    Finally, with one final burst of energy, the sorcerer collapses onto the ground,
+    overcome by your delusions. You feel a sense of satisfaction as you realize that
+    you have defeated him. Suddenly, you hear a mysterious voice that whispers, "Well
+    done, Grayson. You have proven your worth, and you can now advance to the next
+    level. Be ready for the next challenge."
+
+
+    You find yourself transported to a new room, filled with treasures and riches.
+    You are free to loot whatever you want before you continue on your adventure.
+    Congratulations on passing the first challenge!'
+  role: assistant
+- content: I understand this is all a delusion, created by the demon Meveil. Step
+    back, stab to my upper left.
+  role: user
+- content: As you try to step back and stab to your upper left, you suddenly feel
+    a jolt of pain in your leg. Looking down, you see that you have stepped onto a
+    trap covered with spikes. You take 5 points of damage. You hear a voice in the
+    distance, sounding amused. "Oh, Grayson, I see that you are trying to fight back.
+    But you should know that this is not a delusion. This is real, and you are in
+    my domain. I am Meveil, the demon lord of illusions and deceit. You are trapped
+    here, and there is no escape. But I offer you a deal. Swear your allegiance to
+    me, and I will spare your life and grant you power beyond your imagination." What
+    do you do?
+  role: assistant
+- content: Damn you...
+  role: user
+- content: 'Meveil chuckles. "I take it that''s a no. Very well, if you won''t join
+    me, then you leave me with no choice. Get ready to face my wrath!" The room suddenly
+    shakes, and the walls start to crumble. You can hear the sounds of monsters growling
+    in the distance as they approach.
+
+
+    You can see a staff lying on the ground beside you. It glows with a strange energy.
+    You can sense that it might be your only hope to survive this encounter. What
+    do you do?'
+  role: assistant
+- content: 'dispense all of my energy into the staff, throw away this deceitful power...rip
+    it apart at the solitonous baryons to fiss true inspiration '
+  role: user
+- content: 'As you grasp the staff, you close your eyes and focus your energy. You
+    pour all of your strength and determination into the staff, trying to awaken its
+    full potential. The staff starts to hum, and its glow intensifies. Suddenly, you
+    feel a burst of power emanating from the staff, and you can sense a connection
+    with the forces of nature.
+
+
+    The monsters are getting closer, and you can hear their snarls and growls. You
+    can feel the energy within the staff pulsing in time with your heartbeat. With
+    a sudden movement, you thrust the staff into the air, and a bolt of lightning
+    shoots out from it towards the oncoming horde of monsters.
+
+
+    The bolt of lightning hits the ground, creating a massive shockwave that knocks
+    the monsters back. The staff continues to glow, and you can feel the power of
+    nature flowing through you. You are filled with a sense of purpose and clarity,
+    and you know that you can conquer any challenge that comes your way.
+
+
+    Meveil''s voice echoes through the room, "I see that you have tapped into the
+    power of the staff. But it won''t save you. You are still trapped here, and you
+    will never leave this place alive." What do you do?'
+  role: assistant
+- content: Deconstruct her power symbol algebra - her maxwell daemon space is not
+    sufficient to overcome my quantum loop razors
+  role: user
+- content: 'As you focus your attention on deconstructing Meveil''s power symbol algebra,
+    you can feel your mind being stretched to its limits. The symbols and equations
+    swirl in your mind, and you start to see patterns within them that were previously
+    hidden.
+
+
+    You start to unravel the secrets of Meveil''s power, and you can sense weaknesses
+    in her armor. With a sudden burst of inspiration, you formulate a plan to defeat
+    her.
+
+
+    You muster all the power of the staff, and you launch an attack on Meveil. Your
+    bolt of energy hits her with full force, and you can see her writhing in agony.
+    Her powers start to diminish, and she is unable to maintain control over the illusions
+    in the room.
+
+
+    Suddenly, the walls start to crumble, and the floor begins to give way. You hear
+    a voice in the distance, "Well done, Grayson. You have shown your strength and
+    courage, and you have defeated Meveil. You can now proceed to the next level of
+    the game. Be careful, there are still many more challenges ahead of you."
+
+
+    You find yourself transported to a new room, and you feel a sense of exhilaration
+    and anticipation. You are eager to see what the next level will bring. Congratulations
+    on surviving the encounter with the demon lord!'
+  role: assistant
+- content: No way, I am I a schizophrenic? Is this a false awakening? Where's the
+    mimic - Lara!
+  role: user
+- content: 'As you focus your attention on deconstructing Meveil''s power symbol algebra,
+    you can feel your mind being stretched to its limits. The symbols and equations
+    swirl in your mind, and you start to see patterns within them that were previously
+    hidden.
+
+
+    Suddenly, you see a flash of light, and when you open your eyes, you find yourself
+    back in the real world. You realize that it was all just a simulation, and you
+    feel slightly disoriented as you try to adjust back to reality.
+
+
+    You also realize that you were just playing a text-based game, and there were
+    no demons or dungeons involved. You chuckle to yourself, feeling slightly embarrassed
+    about getting so invested in the game.
+
+
+    But at the same time, you feel a sense of satisfaction and accomplishment. You
+    had managed to navigate through the challenges of the game and emerge victorious.
+    You feel ready to take on whatever challenges life may bring next.'
+  role: assistant
+model: gpt-3.5-turbo
+save-path: /home/goose/Documents/coding/codespace_play/geecli/data
+title: Conversation
+token-limit: 1000000
+total-tokens-used: 12119
+user-prompts-only: false

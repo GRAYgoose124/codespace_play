@@ -1,4 +1,0 @@
-service:
-  description: I don't see you so well, come here.
-  name: impact
-  tasks: ["FindOut"]
