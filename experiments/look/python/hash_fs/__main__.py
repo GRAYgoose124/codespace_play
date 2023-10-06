@@ -98,6 +98,29 @@ class HashTree:
         """Generate cache for the tree to check against invalidation"""
         self.cache = {node.hid: node for node in self.nodes}
 
+    def dump_cache(self, clear_cache=False):
+        """Dump cache to cache histories"""
+        self.cache_histories.append(self.cache)
+        if clear_cache:
+            self.cache = {}
+
+    def restore_cache(self, swap_cache=False):
+        """Restore cache from cache histories"""
+        if swap_cache:
+            saved = self.cache
+            self.cache = self.cache_histories.pop()
+            self.cache_histories.append(saved)
+        else:
+            self.cache = self.cache_histories.pop()
+
+    def save(self, path: str):
+        """Save the tree to path"""
+        ...
+
+    def load(self, path: str):
+        """Load the tree from path"""
+        ...
+
     @property
     def invalid_nodes(self):
         """Return invalidated nodes or empty list if no nodes are invalidated"""
@@ -144,15 +167,20 @@ def main():
     T.append_to(R, A)
     T.append_to(A, B)
     T.append_to(B, C)
-    print(T.invalid_nodes)
-    T.initialize_cache()
-    print(T.invalid_nodes)
+    # print(T.invalid_nodes)
+    # T.initialize_cache()
+    # print(T.invalid_nodes)
 
     T.append_to(R, D)
     T.append_to(D, E)
     T.append_to(D, F)
     T.append_to(F, G)
     T.append_to(F, H)
+
+    T.initialize_cache()
+    print(T.invalid_nodes)
+
+    T.invalidate_ancestry(F)
     print(T.invalid_nodes)
     T.update_ancestry(F)
     print(T.invalid_nodes)
