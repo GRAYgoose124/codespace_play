@@ -72,6 +72,8 @@ class QcNet(nn.Module):
 
 class QcNetTrainer:
     def __init__(self, C):
+        # calculate input size from features
+        C["in"] = C["in"] if "in" in C else len(C["features"])
         # C["in"] += 1  # add circuit as it's own feature
         self.C = C
         self.model = QcNet(self.C)
@@ -82,6 +84,10 @@ class QcNetTrainer:
         self.criterion = nn.MSELoss()
 
         self._qcircuits = []
+
+    @property
+    def mapping(self):
+        return lambda *args: {"theta1": args.pop(0), "theta2": args.pop(0)}
 
     @property
     def circuits(self):
@@ -119,7 +125,7 @@ class QcNetTrainer:
                 f"Actual probabilities: {self.circuits[circuit].get_quantum_output(kwargs)}\n"
             )
 
-    def gen_data_from_linspace(self, circuit, linspaces, mapping):
+    def gen_data_from_linspace(self, circuit, linspaces):
         """
         Generate inputs and labels using multiple linspaces and a given mapping.
 
@@ -138,8 +144,10 @@ class QcNetTrainer:
 
         # Using itertools.product to generate all combinations of values from linspaces
         for values in itertools.product(*linspaces):
+            feature_mapping = {f: v for (f, v) in zip(self.C["features"], values)}
+
             data.append(
-                self.circuits[circuit].get_quantum_output(argvals=mapping(*values))
+                self.circuits[circuit].get_quantum_output(argvals=feature_mapping)
             )
             # inputs_list.append([circuit, *values])
             inputs_list.append([*values])
@@ -150,7 +158,7 @@ class QcNetTrainer:
 
         return inputs, labels
 
-    def gen_and_train_over_all_circuits(self, linspaces, mapping, epochs=5000):
+    def gen_and_train_over_all_circuits(self, linspaces, epochs=5000):
         """
         Generate data for all circuits and train the model over all circuits.
 
@@ -162,7 +170,7 @@ class QcNetTrainer:
 
         for circuit in range(len(self.circuits)):
             log.info(f"Generating data and training over circuit {circuit}")
-            inputs, labels = self.gen_data_from_linspace(circuit, linspaces, mapping)
+            inputs, labels = self.gen_data_from_linspace(circuit, linspaces)
             # TODO: add circuit as it's own feature so network can start multiplexing it's predictions
             self.train(inputs, labels, epochs=epochs)
 
@@ -177,13 +185,13 @@ class QcNetTrainer:
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG, format="%(message)s")
+    # logging
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     logging.getLogger("qiskit").setLevel(logging.WARNING)
     logging.getLogger("stevedore").setLevel(logging.WARNING)
 
-    C = {"in": 2, "out": 4}
-
-    T = QcNetTrainer(C)
+    # init
+    T = QcNetTrainer({"features": ["theta1", "theta2"], "out": 4})
     T.add_dsl(
         """
     ry, theta1, 0
@@ -203,20 +211,22 @@ def main():
     """
     )
 
+    # inputs & labels
     inputs, labels = T.gen_data_from_linspace(
         0,
         [np.linspace(0, 2 * np.pi), np.linspace(0, 2 * np.pi)],
-        mapping=lambda theta1, theta2: {"theta1": theta1, "theta2": theta2},
     )
-    T.train(inputs, labels, epochs=1000)
 
+    # train & infer
+    T.train(inputs, labels, epochs=1000)
+    T.infer(0, theta1=np.pi / 4, theta2=np.pi / 3)
+
+    # Strangely broken: (Requires an extra feature input commented out in a few places above as well.)
     # T.gen_and_train_over_all_circuits(
     #     [np.linspace(0, 2 * np.pi, 5), np.linspace(0, 2 * np.pi, 5)],
     #     mapping=lambda theta1, theta2: {"theta1": theta1, "theta2": theta2},
     # )
-
-    # inference
-    T.infer(0, theta1=np.pi / 4, theta2=np.pi / 3)
+    #
     # T.infer_input_over_all_circuits(theta1=np.pi / 4, theta2=np.pi / 3)
 
 
