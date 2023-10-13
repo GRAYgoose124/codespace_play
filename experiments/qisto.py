@@ -18,7 +18,19 @@ class QcDSL:
             if line:
                 tokens = line.split(",")
                 method = tokens[0].strip()
-                args = [eval(arg.strip(), argvals) for arg in tokens[1:]]
+                args = []
+                for arg in tokens[1:]:
+                    arg = arg.strip()
+                    if arg.isnumeric():
+                        if "." in arg:
+                            args.append(float(arg))
+                        else:
+                            args.append(int(arg))
+                    else:
+                        if arg in argvals:
+                            args.append(argvals[arg])
+                        else:
+                            args.append(arg)
                 getattr(qc, method)(*args)
 
         return qc
@@ -55,15 +67,25 @@ def main():
     # init QcDSL and QcNet
     C = {"in": 2, "out": 4}
 
+    # a convenient way of initializing quantum circuits
     dsl = """
-    ry, theta1, int(0)
-    ry, theta2, int(1)
-    cx, int(0), int(1)
+    ry, theta1, 0
+    ry, theta2, 1
+    cx, 0, 1
+    measure_all
+    """
+
+    another_dsl = """
+    h, 0
+    ry, theta1, 1
+    cx, 0, 1
+    ry, theta2, 0
+    cx, 1, 0
     measure_all
     """
 
     Q = QcDSL(
-        dsl,
+        another_dsl,
         C,
     )
     N = QcNet(C)
