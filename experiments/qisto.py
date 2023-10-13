@@ -1,7 +1,10 @@
+import logging
 import itertools
 import numpy as np
 import torch, torch.nn as nn, torch.optim as optim
 from qiskit import Aer, QuantumCircuit, transpile, assemble, execute
+
+log = logging.getLogger(__name__)
 
 
 class QcDSL:
@@ -37,6 +40,7 @@ class QcDSL:
         return qc
 
     def get_quantum_output(self, argvals, n_shots=2048):
+        log.debug(f"{argvals=}")
         qc = self.new_qc_from_dsl(self.dsl, argvals=argvals)
 
         t_qc = transpile(qc, QcDSL.aer)
@@ -54,34 +58,40 @@ class QcDSL:
 class QcNet(nn.Module):
     def __init__(self, C):
         super(QcNet, self).__init__()
-        self.fc1 = nn.Linear(C["in"], 10)
-        self.fc2 = nn.Linear(10, 10)
-        self.fc3 = nn.Linear(10, C["out"])
+        self.fc1 = nn.Linear(C["in"], 16)
+        self.fc2 = nn.Linear(16, 32)
+        self.fc3 = nn.Linear(32, 16)
+        self.fc4 = nn.Linear(16, C["out"])
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
-        return torch.softmax(self.fc3(x), dim=1)
+        x = torch.relu(self.fc3(x))
+        return torch.softmax(self.fc4(x), dim=1)
 
 
 class QcNetTrainer:
     def __init__(self, C):
+        # C["in"] += 1  # add circuit as it's own feature
         self.C = C
-        self.model = QcNet(C)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.01)
+        self.model = QcNet(self.C)
+        self.optimizer = optim.Adam(
+            self.model.parameters(),
+            lr=0.1,
+        )
         self.criterion = nn.MSELoss()
 
-        self._qcdsls = []
+        self._qcircuits = []
 
     @property
     def circuits(self):
-        return self._qcdsls
+        return self._qcircuits
 
     def add_dsl(self, dsl):
-        self._qcdsls.append(QcDSL(dsl, self.C))
+        self._qcircuits.append(QcDSL(dsl, self.C))
 
-    def train(self, inputs, labels):
-        for epoch in range(5000):
+    def train(self, inputs, labels, epochs=100):
+        for epoch in range(epochs):
             self.optimizer.zero_grad()
             outputs = self.model(inputs)
             loss = self.criterion(outputs, labels)
@@ -90,6 +100,7 @@ class QcNetTrainer:
 
     def infer(self, circuit, **kwargs):
         # figure out arg order by inspecting the dsl for kwargs
+        # args = [circuit]
         args = []
         for line in self.circuits[circuit].dsl.splitlines():
             line = line.strip()
@@ -103,7 +114,7 @@ class QcNetTrainer:
         # infer
         with torch.no_grad():
             prediction = self.model(torch.tensor([args]))
-            print(
+            log.info(
                 f"For {args=}, predicted probabilities: {prediction.numpy()[0]}\n"
                 f"Actual probabilities: {self.circuits[circuit].get_quantum_output(kwargs)}\n"
             )
@@ -130,16 +141,46 @@ class QcNetTrainer:
             data.append(
                 self.circuits[circuit].get_quantum_output(argvals=mapping(*values))
             )
-            inputs_list.append(values)
+            # inputs_list.append([circuit, *values])
+            inputs_list.append([*values])
+            log.debug(f"{inputs_list[-1]} {data[-1]}")
 
         inputs = torch.tensor(inputs_list, dtype=torch.float32)
         labels = torch.tensor(data, dtype=torch.float32)
 
         return inputs, labels
 
+    def gen_and_train_over_all_circuits(self, linspaces, mapping, epochs=5000):
+        """
+        Generate data for all circuits and train the model over all circuits.
+
+        Args:
+        - linspaces: A list of linspaces. Each linspace corresponds to an input.
+        - mapping: A function that maps values from linspaces to desired argument values.
+        - epochs: Number of epochs to train for.
+        """
+
+        for circuit in range(len(self.circuits)):
+            log.info(f"Generating data and training over circuit {circuit}")
+            inputs, labels = self.gen_data_from_linspace(circuit, linspaces, mapping)
+            # TODO: add circuit as it's own feature so network can start multiplexing it's predictions
+            self.train(inputs, labels, epochs=epochs)
+
+    def infer_input_over_all_circuits(self, **inputs):
+        """
+        Infer the output for a given input over all circuits.
+        """
+
+        for circuit in range(len(self.circuits)):
+            log.info(f"Predicting output for circuit {circuit}")
+            self.infer(circuit, **inputs)
+
 
 def main():
-    # init QcDSL and QcNet
+    logging.basicConfig(level=logging.DEBUG, format="%(message)s")
+    logging.getLogger("qiskit").setLevel(logging.WARNING)
+    logging.getLogger("stevedore").setLevel(logging.WARNING)
+
     C = {"in": 2, "out": 4}
 
     T = QcNetTrainer(C)
@@ -162,19 +203,21 @@ def main():
     """
     )
 
-    # inputs and labels
-    selC = 0
     inputs, labels = T.gen_data_from_linspace(
-        selC,
-        [np.linspace(0, 2 * np.pi, 50), np.linspace(0, 2 * np.pi, 50)],
+        0,
+        [np.linspace(0, 2 * np.pi), np.linspace(0, 2 * np.pi)],
         mapping=lambda theta1, theta2: {"theta1": theta1, "theta2": theta2},
     )
+    T.train(inputs, labels, epochs=1000)
 
-    # train
-    T.train(inputs, labels)
+    # T.gen_and_train_over_all_circuits(
+    #     [np.linspace(0, 2 * np.pi, 5), np.linspace(0, 2 * np.pi, 5)],
+    #     mapping=lambda theta1, theta2: {"theta1": theta1, "theta2": theta2},
+    # )
 
     # inference
-    T.infer(selC, theta1=np.pi / 4, theta2=np.pi / 3)
+    T.infer(0, theta1=np.pi / 4, theta2=np.pi / 3)
+    # T.infer_input_over_all_circuits(theta1=np.pi / 4, theta2=np.pi / 3)
 
 
 if __name__ == "__main__":
