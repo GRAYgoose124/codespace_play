@@ -3,7 +3,7 @@ import inspect
 import logging
 from functools import wraps
 from itertools import chain
-from typing import TypeVar
+from typing import Sequence, TypeVar
 
 
 log = logging.getLogger(__name__)
@@ -13,30 +13,52 @@ class ValidationError(TypeError):
     pass
 
 
-def check_binding(annotation, arg, Gbinds):
-    log.debug(f"{annotation=} {arg=} {Gbinds=}")
-    if isinstance(annotation, TypeVar):
-        if Gbinds[annotation][0] is None:
-            Gbinds[annotation][0] = type(arg)
-        elif Gbinds[annotation][0] != type(arg):
-            raise ValidationError(f"Generic {annotation} bound to different types: {Gbinds[annotation][0]}, but arg is {type(arg)}")
-        Gbinds[annotation][1].append(arg)
-    elif isinstance(annotation, tuple):
-        if isinstance(arg, tuple) and len(annotation) == len(arg):
-            for a, b in zip(annotation, arg):
+def check_binding(ann, arg, Gbinds):
+    log.debug(f"{ann=}:{type(ann)} {arg=} {Gbinds=}")
+
+    if hasattr(ann, "__constraints__") and len(ann.__constraints__):
+        log.debug(f"{ann} {ann.__constraints__}")
+        if type(arg) not in ann.__constraints__:
+            raise ValidationError(f"{arg=} is not valid for {ann=} with constraints {ann.__constraints__}")
+
+    def handle_typevar():
+        if Gbinds[ann][0] is None:
+            Gbinds[ann][0] = type(arg)
+        elif Gbinds[ann][0] != type(arg):
+            raise ValidationError(f"Generic {ann} bound to different types: {Gbinds[ann][0]}, but arg is {type(arg)}")
+        Gbinds[ann][1].append(arg)
+
+    def handle_sequence():
+        if isinstance(arg, tuple) and len(ann) == len(arg):
+            for a, b in zip(ann, arg):
                 check_binding(a, b, Gbinds)
         elif isinstance(arg, list):
             for a in arg:
-                check_binding(annotation[0], a, Gbinds)
+                check_binding(ann[0], a, Gbinds)
         else:
-            raise ValidationError(f"{arg=} is not valid for {annotation=}")
-    elif isinstance(annotation, list):
-        if isinstance(arg, list):
-            for a in arg:
-                check_binding(annotation[0], a, Gbinds)
-        else:
-            raise ValidationError(f"{arg=} is not valid for {annotation=}")
-        
+            raise ValidationError(f"{arg=} is not valid for {ann=}")
+
+    def handle_callable():
+        if not ann(arg):
+            raise ValidationError(f"{arg=} is not valid for {ann.__name__}")
+
+    type_handlers = {
+        TypeVar: handle_typevar,
+        (list, tuple): handle_sequence,
+        callable: handle_callable,
+    }
+
+    for type_check, handler in type_handlers.items():
+        if isinstance(type_check, Sequence):
+            if any(isinstance(ann, t) for t in type_check):
+                handler()
+                return
+        if isinstance(ann, type_check):
+            handler()
+            return
+
+    raise ValidationError(f"Type {type(ann)} is not handled.")
+
 
 def validate(func):
     """Validate the arguments of a function."""
@@ -55,12 +77,12 @@ def validate(func):
             result = func(*args, **kwargs)
 
             if "return" in argspec.annotations:
-                return_spec = argspec.annotations["return"]
-                log.debug("annotations=%s result_type=%s return_spec=%s", argspec.annotations, type(result), return_spec)
+                ret_ann = argspec.annotations["return"]
+                log.debug("annotations=%s result_type=%s return_spec=%s", argspec.annotations, type(result), ret_ann)
 
-                return_isnt_in_constraints = hasattr(return_spec, '__constraints__') and type(result) not in return_spec.__constraints__
-                if return_spec != type(result) and return_isnt_in_constraints:
-                    raise ValidationError(f"Return type {argspec.annotations['return']} does not match {type(result)}")
+
+                if ret_ann != type(result):
+                    check_binding(ret_ann, result, Gbinds)
             return result
         else:
             raise ValidationError(f"{Gbinds=}")
@@ -96,12 +118,14 @@ def main():
         return {"first": a, "second": b}
 
     def test_validation(func, *args, **kwargs) -> bool:
-        log.info(f"Testing {func.__name__} with {args=}, {kwargs=}...")
+        global i
+        log.info(f"{i}. Testing {func.__name__} with {args=}, {kwargs=}...")
+        i += 1
         try:
             func(*args, **kwargs)
             return True
         except ValidationError as e:
-            log.exception(e.with_traceback(None))
+            log.error(e.with_traceback(None))
         except Exception as e:
             log.exception(e)
         return False
@@ -113,15 +137,17 @@ def main():
         for t in tests:
             test_results.append(t())
             if not test_results[-1]:
-                log.warning(f"Failed.")
+                log.warning(f"Failed.\n")
             else:
-                log.info(f"Passed.")
+                log.info(f"Passed.\n")
 
         failed_test_idxs = [i for i, result in enumerate(test_results) if not result]
-        fail_out = "".join([f"  {i+1}: {body.strip()}\n" for i, body in zip(failed_test_idxs, [inspect.getsource(tests[i]) for i in failed_test_idxs])])
+        fail_out = "".join([f"  {i}: {body.strip()}\n" for i, body in zip(failed_test_idxs, [inspect.getsource(tests[i]) for i in failed_test_idxs])])
         print(f"\n --- Test Results --- \n{all(test_results)=}\nFailures:\n{fail_out}({sum(test_results)}/{len(test_results)}) passed.")
 
     def test_main():
+        global i
+        i = 0
         tests = [
             lambda: test_validation(mymod, 10, 3),
             lambda: test_validation(mymod, 10.0, 3.0),
