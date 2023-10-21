@@ -14,26 +14,29 @@ class ValidationError(TypeError):
 
 
 def check_binding(annotation, arg, Gbinds):
-    if isinstance(annotation, tuple):
-        if isinstance(arg, tuple) and len(annotation) == len(arg):
-            for a, b in zip(annotation, arg):
-                check_binding(a, b, Gbinds)
-        else:
-            log.debug(type(annotation), type(arg))
-            raise ValidationError(f"{arg=} is not valid for {annotation=}")
-    elif isinstance(annotation, TypeVar):
+    log.debug(f"{annotation=} {arg=} {Gbinds=}")
+    if isinstance(annotation, TypeVar):
         if Gbinds[annotation][0] is None:
             Gbinds[annotation][0] = type(arg)
         elif Gbinds[annotation][0] != type(arg):
             raise ValidationError(f"Generic {annotation} bound to different types: {Gbinds[annotation][0]}, but arg is {type(arg)}")
         Gbinds[annotation][1].append(arg)
+    elif isinstance(annotation, tuple):
+        if isinstance(arg, tuple) and len(annotation) == len(arg):
+            for a, b in zip(annotation, arg):
+                check_binding(a, b, Gbinds)
+        elif isinstance(arg, list):
+            for a in arg:
+                check_binding(annotation[0], a, Gbinds)
+        else:
+            raise ValidationError(f"{arg=} is not valid for {annotation=}")
     elif isinstance(annotation, list):
         if isinstance(arg, list):
             for a in arg:
                 check_binding(annotation[0], a, Gbinds)
         else:
             raise ValidationError(f"{arg=} is not valid for {annotation=}")
-
+        
 
 def validate(func):
     """Validate the arguments of a function."""
@@ -53,11 +56,10 @@ def validate(func):
 
             if "return" in argspec.annotations:
                 return_spec = argspec.annotations["return"]
-                log.debug("%s %s %s", argspec.annotations, type(result), return_spec)
+                log.debug("annotations=%s result_type=%s return_spec=%s", argspec.annotations, type(result), return_spec)
 
-                return_doesnt_equal_result = return_spec != type(result)
                 return_isnt_in_constraints = hasattr(return_spec, '__constraints__') and type(result) not in return_spec.__constraints__
-                if return_doesnt_equal_result and return_isnt_in_constraints:
+                if return_spec != type(result) and return_isnt_in_constraints:
                     raise ValidationError(f"Return type {argspec.annotations['return']} does not match {type(result)}")
             return result
         else:
@@ -80,17 +82,17 @@ def main():
         return str(a + b)
     
     @validate
-    def variadic_func[T](a: T, *args: list[T]) -> T:
+    def variadic_func[T, *Ts](a: T, *args: [T]) -> T:
         if isinstance(a, str):
             return f"{a}".join(args)
-        return sum(args, a)
+        return sum(args + (a,),)
     
     @validate
     def default_arg_func[T, U: (int, float)](a: T, b: U = 10) -> U:
         return b
     
     @validate
-    def nested_generic_func[T, U](a: (T, U), b: list[T]) -> dict:
+    def nested_generic_func[T, U](a: (T, U), b: [T]) -> dict:
         return {"first": a, "second": b}
 
     def test_validation(func, *args, **kwargs) -> bool:
@@ -99,12 +101,12 @@ def main():
             func(*args, **kwargs)
             return True
         except ValidationError as e:
-            pass
+            log.exception(e.with_traceback(None))
         except Exception as e:
             log.exception(e)
         return False
 
-    def test_runner(tests, level=logging.INFO):
+    def test_runner(tests, level=logging.DEBUG):
         logging.basicConfig(level=level, format="%(levelname).4s | %(message)s")
 
         test_results = []
