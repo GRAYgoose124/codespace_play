@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import inspect
 
+
 class ValidationError(TypeError):
     pass
 
@@ -27,7 +28,6 @@ def validate(func):
         Gbinds = {G: None for G in Gs}
         Gbins = {G: [] for G in Gs}
 
-
         context = (Gbinds, Gbins, Gs, argspec)
         for name, arg in zip(argspec.args, args):
             check_binding(name, arg, context)
@@ -45,7 +45,6 @@ def validate(func):
             return result
         else:
             raise ValidationError(f"{Gbinds=} {Gbins=}")
-
 
     return wrapper
 
@@ -86,6 +85,7 @@ def main():
     ]
 
     print(f"{all(tests)=}")
+
 
 if __name__ == '__main__':
     main()
