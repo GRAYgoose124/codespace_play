@@ -1,50 +1,47 @@
 #!/usr/bin/env python
 import inspect
+from itertools import chain
+from typing import TypeVar
 
 
 class ValidationError(TypeError):
     pass
 
 
-def check_binding(name, arg, context):
-    Gbinds, Gbins, Gs, argspec = context
-    if name in argspec.annotations:
-        for G in Gs:
-            if G == argspec.annotations[name]: # is?
-                if Gbinds[G] is None:
-                    Gbinds[G] = type(arg)
-                elif Gbinds[G] != type(arg):
-                    raise ValidationError(f"Generic {G} bound to different types: {Gbinds[G]}, but arg is {type(arg)}")
-                Gbins[G].append(arg)
+def check_binding(annotation, arg, Gbinds):
+    if isinstance(annotation, tuple):
+        if type(arg) not in annotation:
+            raise ValidationError(f"{arg} is not valid for {annotation}")
+    elif isinstance(annotation, TypeVar):
+        if Gbinds[annotation][0] is None:
+            Gbinds[annotation][0] = type(arg)
+        elif Gbinds[annotation][0] != type(arg):
+            raise ValidationError(f"Generic {annotation} bound to different types: {Gbinds[annotation][0]}, but arg is {type(arg)}")
+        Gbinds[annotation][1].append(arg)
+    else:
+        if type(arg) != annotation:
+            raise ValidationError(f"{arg} is not valid for {annotation}")
 
 
 def validate(func):
     """Validate the arguments of a function."""
-    argspec = inspect.getfullargspec(func)
-
-    Gs = func.__type_params__
+    argspec, generics = inspect.getfullargspec(func), func.__type_params__
 
     def wrapper(*args, **kwargs):
-        Gbinds = {G: None for G in Gs}
-        Gbins = {G: [] for G in Gs}
+        Gbinds = {G: [None, []] for G in generics}
 
-        context = (Gbinds, Gbins, Gs, argspec)
-        for name, arg in zip(argspec.args, args):
-            check_binding(name, arg, context)
-            
-        for name, arg in kwargs.items():
-            check_binding(name, arg, context)
+        for name, arg in chain(zip(argspec.args, args), kwargs.items()):
+            annotation = argspec.annotations.get(name)
+            if annotation is not None:
+                check_binding(annotation, arg, Gbinds)
 
-        generics_are_bound = all(val is not None or len(bound)==0 for val, bound in zip(Gbinds.values(), Gbins.values()))
-        if generics_are_bound:
+        if all(val is not None or len(bound)==0 for val, bound in Gbinds.values()):
             result = func(*args, **kwargs)
-            # validate result against return type
-            if argspec.annotations.get("return"):
-                if type(result) not in argspec.annotations["return"].__constraints__:
-                    raise ValidationError(f"Return type {argspec.annotations['return']} does not match {type(result)}")
+            if "return" in argspec.annotations and type(result) not in argspec.annotations["return"].__constraints__:
+                raise ValidationError(f"Return type {argspec.annotations['return']} does not match {type(result)}")
             return result
         else:
-            raise ValidationError(f"{Gbinds=} {Gbins=}")
+            raise ValidationError(f"{Gbinds=}")
 
     return wrapper
 
@@ -56,7 +53,7 @@ def main():
 
     @validate
     def mysum[T, W: (int, float)](a: T, b: T) -> W:
-        return (a + b)
+        return float(a + b)
 
     @validate
     def badmysum[T, W: (int, float)](a: T, b: T) -> W:
