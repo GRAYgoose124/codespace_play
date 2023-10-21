@@ -62,16 +62,9 @@ def main():
     def badmysum[T, W: (int, float)](a: T, b: T) -> W:
         return str(a + b)
     
-    def coercable_sum(*args):
-        [print(type(arg)) for arg in args]
-        result = args[0]
-        for arg in args[1:]:
-            result += arg
-        return result
-
     @validate
     def variadic_func[T](a: T, *args: T) -> T:
-        return coercable_sum(*args) + a
+        return sum(*args) + a
     
     @validate
     def default_arg_func[T, U](a: T, b: U = 10) -> U:
@@ -92,39 +85,41 @@ def main():
             print_exc()
         return False
     
-    tests = [
-        lambda: test_validation(mymod, 10, 3),
-        lambda: test_validation(mymod, 10.0, 3.0),
-        lambda: not test_validation(mymod, 10, 3.0),
-        lambda: test_validation(mysum, 1, 2),
-        lambda: not test_validation(mysum, 1, 2.0),
-        lambda: not test_validation(badmysum, 1, 2),
-        lambda: test_validation(variadic_func, 1, 2, 3, 4),
-        lambda: test_validation(variadic_func, 1.0, 2.0, 3.0),
-        lambda: test_validation(variadic_func, "a", "b", "c"),
-        lambda: not test_validation(variadic_func, 1, 2.0),
-        lambda: test_validation(default_arg_func, "Hello"),
-        lambda: test_validation(default_arg_func, "Hello", 20),
-        lambda: not test_validation(default_arg_func, "Hello", "World"),
-        lambda: test_validation(nested_generic_func, (1, "a"), [1, 2, 3]),
-        lambda: test_validation(nested_generic_func, ("a", 1.0), ["a", "b"]),
-        lambda: not test_validation(nested_generic_func, (1, "a"), [1, "b"], should_fail=True),
-    ]
+    def test_main():
+        tests = [
+            lambda: test_validation(mymod, 10, 3),
+            lambda: test_validation(mymod, 10.0, 3.0),
+            lambda: not test_validation(mymod, 10, 3.0),
+            lambda: test_validation(mysum, 1, 2),
+            lambda: not test_validation(mysum, 1, 2.0),
+            lambda: not test_validation(badmysum, 1, 2),
+            lambda: test_validation(variadic_func, 1, 2, 3, 4),
+            lambda: test_validation(variadic_func, 1.0, 2.0, 3.0),
+            lambda: test_validation(variadic_func, "a", "b", "c"),
+            lambda: not test_validation(variadic_func, 1, 2.0),
+            lambda: test_validation(default_arg_func, "Hello"),
+            lambda: test_validation(default_arg_func, "Hello", 20),
+            lambda: not test_validation(default_arg_func, "Hello", "World"),
+            lambda: test_validation(nested_generic_func, (1, "a"), [1, 2, 3]),
+            lambda: test_validation(nested_generic_func, ("a", 1.0), ["a", "b"]),
+            lambda: not test_validation(nested_generic_func, (1, "a"), [1, "b"]),
+        ]
 
-    test_results = []
-    for t in tests:
-        result = t()
-        test_results.append(result)
-        if not result:
-            print(f"Failed.")
-        else:
-            print(f"Passed.")
+        test_results = []
+        for t in tests:
+            test_results.append(t())
+            if not test_results[-1]:
+                print(f"Failed.")
+            else:
+                print(f"Passed.")
 
-    all_failure_indices = [i for i, result in enumerate(test_results) if not result]
-    all_failure_bodies = [inspect.getsource(tests[i]) for i in all_failure_indices]
-    all_failures_list_str = "".join([f"  {i}: {body.strip()}\n" for i, body in zip(all_failure_indices, all_failure_bodies)])
-    print(f"\n --- Test Results --- \n{all(test_results)=}\nFailures:\n{all_failures_list_str}({sum(test_results)}/{len(test_results)}) passed.")
+        all_failure_indices = [i for i, result in enumerate(test_results) if not result]
+        all_failure_bodies = [inspect.getsource(tests[i]) for i in all_failure_indices]
+        all_failures_list_str = "".join([f"  {i+1}: {body.strip()}\n" for i, body in zip(all_failure_indices, all_failure_bodies)])
+        print(f"\n --- Test Results --- \n{all(test_results)=}\nFailures:\n{all_failures_list_str}({sum(test_results)}/{len(test_results)}) passed.")
+
+    test_main()
+
 
 if __name__ == '__main__':
     main()
-
